@@ -1,10 +1,17 @@
 package ca.etsmtl.gti785;
 
 import java.io.IOException;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import uk.co.caprica.vlcj.binding.LibVlc;
+import uk.co.caprica.vlcj.runtime.RuntimeUtil;
+
+import com.sun.jna.Native;
+import com.sun.jna.NativeLibrary;
 
 /**
  * Servlet implementation class ServletManETS
@@ -18,6 +25,10 @@ public class ServletManETS extends HttpServlet {
     public ServletManETS() {
         super();
         // TODO Auto-generated constructor stub
+        NativeLibrary.addSearchPath(
+        	      RuntimeUtil.getLibVlcLibraryName(), "C:\\Program Files (x86)\\VideoLAN\\VLC");
+        Native.loadLibrary(RuntimeUtil.getLibVlcLibraryName(), LibVlc.class);
+
     }
 
 	/**
