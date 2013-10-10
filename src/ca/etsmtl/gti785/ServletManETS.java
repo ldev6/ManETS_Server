@@ -24,19 +24,10 @@ public class ServletManETS extends HttpServlet {
 
 	//EXECUTED AT START
 	static {
-//		System.out.println(System.getProperty("java.version"));
-//		System.out.println(System.getProperty("java.vendor"));
-//		System.out.println(System.getProperty("java.vm.specification.version"));
-//		System.out.println(System.getProperty("java.vm.specification.name"));
-//		System.out.println(System.getProperty("java.vm.version"));
-//		System.out.println(System.getProperty("java.vm.vendor"));
+		NativeLibrary.addSearchPath(RuntimeUtil.getLibVlcLibraryName(), "C:\\Program Files\\VideoLAN\\VLC");
+		System.out.println("C:\\Program Files\\VideoLAN\\VLC");
 		
-//		NativeLibrary.addSearchPath(RuntimeUtil.getLibVlcLibraryName(), "C:\\Program Files (86)\\VideoLAN\\VLC");
-//		NativeLibrary.addSearchPath(RuntimeUtil.getLibVlcLibraryName(), "C:/Program Files (86)/VideoLAN/VLC");
-		
-//		System.out.println(System.getProperty("java.library.path"));
-		
-//		Native.loadLibrary(RuntimeUtil.getLibVlcLibraryName(), LibVlc.class);
+		Native.loadLibrary(RuntimeUtil.getLibVlcLibraryName(), LibVlc.class);
 		System.out.println("Native Lib loaded");
 	}
 
@@ -56,10 +47,7 @@ public class ServletManETS extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
 		response.setContentType("application/json");
-		response.getWriter().write("[1,2,3,4,5,6,7,8,9,10]");
-//		PrintWriter out = response.getWriter();
-//		out.println("[1,2,3,4,5,6,7,8,9,10]");
-//		out.flush();
+		response.getWriter().write("{dataSources:[music:/music/,video:/video/]}");
 	}
 
 	/**
