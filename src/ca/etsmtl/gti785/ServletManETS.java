@@ -35,7 +35,27 @@ public class ServletManETS extends HttpServlet {
 	private static String userHome;
 	private static String musicHome;
 	private static String videoHome;
+	private static final String extensions[] = new String[] { "mp3", "flac",
+			"mp4" };
 
+	private static final FileFilter fileFilter = new FileFilter() {
+
+		public boolean accept(File file) {
+			if (file.isDirectory()) {
+				return true;
+			} else {
+				String path = file.getAbsolutePath().toLowerCase();
+				for (int i = 0, n = extensions.length; i < n; i++) {
+					String extension = extensions[i];
+					if ((path.endsWith(extension) && (path.charAt(path.length()
+							- extension.length() - 1)) == '.')) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+	};
 	// EXECUTED AT START, ONLY ONE TIME
 	static {
 		NativeLibrary.addSearchPath(RuntimeUtil.getLibVlcLibraryName(),
@@ -127,6 +147,7 @@ public class ServletManETS extends HttpServlet {
 			PrintWriter out = response.getWriter();
 
 			Map<String, String[]> parameterMap = request.getParameterMap();
+			System.out.println(">>Params : " + parameterMap);
 			RestRequest resourceValues = new RestRequest(servInfo);
 			File[] array;
 			switch (resourceValues.c) {
@@ -135,14 +156,26 @@ public class ServletManETS extends HttpServlet {
 				break;
 			case CLEAR:
 			case LIST:
-				array = new File(musicHome).listFiles();
-				List<RepertoireDefinition> listRepertoire = new ArrayList<RepertoireDefinition>();
-				for (int i = 0; i < array.length; i++) {
-					listRepertoire.add(new RepertoireDefinition(musicHome,
-							array[i].getName()));
+				// add path param if key=rep is present
+				if (parameterMap.containsKey("rep")) {
+					musicHome += parameterMap.get("rep")[0];
+					System.out.println(">>Path asked : " + musicHome);
 				}
-				response.getWriter().write(
-						new ObjectMapper().writeValueAsString(listRepertoire));
+				// list all file from directory with file filtering
+				array = new File(musicHome).listFiles(fileFilter);
+				if (array != null) {
+
+					List<RepertoireDefinition> listRepertoire = new ArrayList<RepertoireDefinition>();
+					for (int i = 0; i < array.length; i++) {
+						listRepertoire.add(new RepertoireDefinition(musicHome,
+								array[i].getName()));
+					}
+					response.getWriter().write(
+							new ObjectMapper()
+									.writeValueAsString(listRepertoire));
+				} else {
+					response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+				}
 				break;
 			case NEXT:
 			case OPEN:
