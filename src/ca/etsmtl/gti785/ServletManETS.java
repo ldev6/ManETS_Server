@@ -16,12 +16,16 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import uk.co.caprica.vlcj.binding.LibVlc;
+import uk.co.caprica.vlcj.player.MediaPlayerFactory;
+import uk.co.caprica.vlcj.player.headless.HeadlessMediaPlayer;
 import uk.co.caprica.vlcj.runtime.RuntimeUtil;
 import ca.etsmtl.gti785.model.DashBoardFeed;
-import ca.etsmtl.gti785.model.RepertoireDefinition;
 import ca.etsmtl.gti785.model.DashBoardFeed.Settings;
 import ca.etsmtl.gti785.model.DataSource;
+import ca.etsmtl.gti785.model.PlayList;
+import ca.etsmtl.gti785.model.RepertoireDefinition;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLibrary;
@@ -67,10 +71,8 @@ public class ServletManETS extends HttpServlet {
 
 		userHome = System.getProperty("user.home");
 		musicHome = checkMusicHomeExist();
-		if (!musicHome.equals("false")) {
-			startScrapingMusicFolder();
-		}
 		videoHome = checkVideoExist();
+
 		System.out.println("============================");
 		System.out.println("Server System info :");
 		System.out.println(System.getProperty("os.name"));
@@ -91,15 +93,19 @@ public class ServletManETS extends HttpServlet {
 		System.out.println("============================");
 	}
 
+	private HeadlessMediaPlayer mediaPlayer;
+	private PlayList playlists = new PlayList();
+
 	/**
 	 * @see HttpServlet#HttpServlet()
 	 */
 	public ServletManETS() {
 		super();
-	}
 
-	private static void startScrapingMusicFolder() {
+		final MediaPlayerFactory mediaPlayerFactory = new MediaPlayerFactory();
 
+		mediaPlayer = mediaPlayerFactory.newHeadlessMediaPlayer();
+		assert mediaPlayer != null;
 	}
 
 	private static String checkVideoExist() {
@@ -113,6 +119,12 @@ public class ServletManETS extends HttpServlet {
 				: "false";
 	}
 
+	// ////////////////////////////////////////////////////
+	//
+	// HTTP MANAGEMENT
+	//
+	// ////////////////////////////////////////////////////
+
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
 	 *      response)
@@ -121,75 +133,83 @@ public class ServletManETS extends HttpServlet {
 			HttpServletResponse response) throws ServletException, IOException {
 
 		String servInfo = request.getServletPath();
-		// String requestURL = request.getRequestURL().toString();
 
 		System.out.println(">Path : " + servInfo);
-		// System.out.println(requestURL);
 
 		response.setContentType("application/json");
 		if (servInfo.equals("/")) {
 
-			DataSource r = new DataSource("root", hostAddress);
-			DataSource m = new DataSource("musicHome", musicHome);
-			DataSource v = new DataSource("videoHome", videoHome);
+			final DataSource m = new DataSource("list", "/list");
+			final DataSource v = new DataSource("playlist", "/playlist");
 
-			ArrayList<DataSource> list = new ArrayList<DataSource>();
-			list.add(r);
+			final ArrayList<DataSource> list = new ArrayList<DataSource>();
 			list.add(m);
 			list.add(v);
-			DashBoardFeed feed = new DashBoardFeed(list, new Settings());
+			final DashBoardFeed feed = new DashBoardFeed(list, new Settings());
 
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(feed));
 
 		} else {
 
-			PrintWriter out = response.getWriter();
+			final PrintWriter out = response.getWriter();
 
-			Map<String, String[]> parameterMap = request.getParameterMap();
+			final Map<String, String[]> parameterMap = request
+					.getParameterMap();
+
 			System.out.println(">>Params : " + parameterMap);
-			RestRequest resourceValues = new RestRequest(servInfo);
-			File[] array;
+
+			final RestRequest resourceValues = new RestRequest(servInfo);
+
 			switch (resourceValues.c) {
 			case ADD:
-
+				manageAddRequest(response, parameterMap);
 				break;
 			case CLEAR:
+				manageClearRequest(response, parameterMap);
+				break;
 			case LIST:
-				// add path param if key=rep is present
-				if (parameterMap.containsKey("rep")) {
-					musicHome += parameterMap.get("rep")[0];
-					System.out.println(">>Path asked : " + musicHome);
-				}
-				// list all file from directory with file filtering
-				array = new File(musicHome).listFiles(fileFilter);
-				if (array != null) {
-
-					List<RepertoireDefinition> listRepertoire = new ArrayList<RepertoireDefinition>();
-					for (int i = 0; i < array.length; i++) {
-						listRepertoire.add(new RepertoireDefinition(musicHome,
-								array[i].getName()));
-					}
-					response.getWriter().write(
-							new ObjectMapper()
-									.writeValueAsString(listRepertoire));
-				} else {
-					response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-				}
+				manageListRequest(response, parameterMap);
 				break;
 			case NEXT:
+				manageNextRequest(response, parameterMap);
+				break;
 			case OPEN:
+				manageOpenRequest(response, parameterMap);
+				break;
 			case ORDER:
+				manageOrderRequest(response, parameterMap);
+				break;
 			case PAUSE:
+				managePauseRequest(response, parameterMap);
+				break;
 			case PLAY:
+				managePlayRequest(response, parameterMap);
+				break;
 			case PLAYLIST:
+				managePlaylistRequest(response, parameterMap);
+				break;
 			case PLAYPLAYLIST:
+				managePlayPlayListRequest(response, parameterMap);
+				break;
 			case PREVIOUS:
+				managePreviousRequest(response, parameterMap);
+				break;
 			case REMOVE:
+				manageRemoveRequest(response, parameterMap);
+				break;
 			case SEEK:
+				manageSeekRequest(response, parameterMap);
+				break;
 			case STATE:
+				manageStateRequest(response, parameterMap);
+				break;
 			case STOP:
+				manageStopRequest(response, parameterMap);
+				break;
 			case VOLUME:
+				manageVolumeRequest(response, parameterMap);
+				break;
 			case NONE:
 				response.sendError(HttpServletResponse.SC_NOT_FOUND);
 				break;
@@ -200,6 +220,129 @@ public class ServletManETS extends HttpServlet {
 			out.close();
 			out.flush();
 		}
+	}
+
+	private void manageNextRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void manageVolumeRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void manageStopRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void manageStateRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void manageSeekRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void manageRemoveRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void managePreviousRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void managePlayPlayListRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void managePlaylistRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void managePlayRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void managePauseRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void manageOrderRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void manageClearRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+		playlists.paths.clear();
+		response.setStatus(200);
+	}
+
+	private void manageOpenRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) {
+
+	}
+
+	private void manageAddRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) throws IOException {
+
+		if (parameterMap.containsKey("path")) {
+			playlists.paths.add(parameterMap.get("path")[0]);
+			response.setStatus(200);
+		} else {
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+		}
+	}
+
+	private void manageListRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) throws IOException,
+			JsonProcessingException {
+		File[] array;
+		String path = musicHome;
+		// add path param if key=rep is present
+		if (parameterMap.containsKey("rep")) {
+
+			path += parameterMap.get("rep")[0];
+			System.out.println(">>Path asked : " + musicHome);
+		}
+		// list all file from directory with file filtering
+		array = new File(path).listFiles(fileFilter);
+		if (array != null) {
+
+			List<RepertoireDefinition> listRepertoire = new ArrayList<RepertoireDefinition>();
+			for (int i = 0; i < array.length; i++) {
+				listRepertoire.add(new RepertoireDefinition(path, array[i]
+						.getName()));
+			}
+
+			response.getWriter().write(
+					new ObjectMapper().writeValueAsString(listRepertoire));
+		} else {
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+		}
+		array = null;
 	}
 
 	/**
