@@ -25,8 +25,18 @@
 	<servlet-mapping>
 		<servlet-name>ServletManETS</servlet-name>
 		<url-pattern>/</url-pattern>
-		<url-pattern>/music/*</url-pattern>
-		<url-pattern>/video/*</url-pattern>
+		<url-pattern>/list/*</url-pattern>
+		<url-pattern>/open/*</url-pattern>
+		<url-pattern>/pause/*</url-pattern>
 		<url-pattern>/play/*</url-pattern>
+		<url-pattern>/next/*</url-pattern>
+		<url-pattern>/previous/*</url-pattern>
+		<url-pattern>/seek/*</url-pattern>
+		<url-pattern>/volume/*</url-pattern>
+		<url-pattern>/add/*</url-pattern>
+		<url-pattern>/remove/*</url-pattern>
+		<url-pattern>/order/*</url-pattern>
+		<url-pattern>/playlist/*</url-pattern>
+		<url-pattern>/playlist-play/*</url-pattern>
 	</servlet-mapping>
 </web-app>

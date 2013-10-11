@@ -1,12 +1,14 @@
 package ca.etsmtl.gti785;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -15,6 +17,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import uk.co.caprica.vlcj.binding.LibVlc;
 import uk.co.caprica.vlcj.runtime.RuntimeUtil;
+import ca.etsmtl.gti785.model.DashBoardFeed;
+import ca.etsmtl.gti785.model.RepertoireDefinition;
+import ca.etsmtl.gti785.model.DashBoardFeed.Settings;
 import ca.etsmtl.gti785.model.DataSource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,10 +47,10 @@ public class ServletManETS extends HttpServlet {
 
 		userHome = System.getProperty("user.home");
 		musicHome = checkMusicHomeExist();
-		if (!musicHome.equals("null")) {
+		if (!musicHome.equals("false")) {
 			startScrapingMusicFolder();
 		}
-		videoHome = checkMusicVideoExist();
+		videoHome = checkVideoExist();
 		System.out.println("============================");
 		System.out.println("Server System info :");
 		System.out.println(System.getProperty("os.name"));
@@ -77,15 +82,14 @@ public class ServletManETS extends HttpServlet {
 
 	}
 
-	private static String checkMusicVideoExist() {
-		String string = new File(userHome + "\\Music").exists() ? userHome
-				+ "\\Music" : "false";
-		System.out.println("\\Music Exists");
+	private static String checkVideoExist() {
+		String string = new File(userHome + "\\Videos").exists() ? userHome
+				+ "\\Videos" : "false";
 		return string;
 	}
 
 	private static String checkMusicHomeExist() {
-		return new File(userHome + "\\Video").exists() ? userHome + "\\Video"
+		return new File(userHome + "\\Music").exists() ? userHome + "\\Music"
 				: "false";
 	}
 
@@ -97,44 +101,71 @@ public class ServletManETS extends HttpServlet {
 			HttpServletResponse response) throws ServletException, IOException {
 
 		String servInfo = request.getServletPath();
-		String requestURL = request.getRequestURL().toString();
+		// String requestURL = request.getRequestURL().toString();
 
-		System.out.println(servInfo);
-		System.out.println(requestURL);
+		System.out.println(">Path : " + servInfo);
+		// System.out.println(requestURL);
 
-		if (servInfo.equals("/ServletManETS/")) {
-
-			response.setContentType("application/json");
+		response.setContentType("application/json");
+		if (servInfo.equals("/")) {
 
 			DataSource r = new DataSource("root", hostAddress);
 			DataSource m = new DataSource("musicHome", musicHome);
 			DataSource v = new DataSource("videoHome", videoHome);
 
-			List<DataSource> dataSources = new ArrayList<DataSource>();
-			dataSources.add(r);
-			dataSources.add(m);
-			dataSources.add(v);
+			ArrayList<DataSource> list = new ArrayList<DataSource>();
+			list.add(r);
+			list.add(m);
+			list.add(v);
+			DashBoardFeed feed = new DashBoardFeed(list, new Settings());
 
 			response.getWriter().write(
-					new ObjectMapper().writeValueAsString(dataSources));
+					new ObjectMapper().writeValueAsString(feed));
 
 		} else {
 
 			PrintWriter out = response.getWriter();
 
-			out.println("GET request handling");
-			out.println(servInfo);
-			out.println(request.getParameterMap());
-			try {
-				RestRequest resourceValues = new RestRequest(servInfo);
-				out.println(resourceValues.getId());
-			} catch (ServletException e) {
-				response.setStatus(400);
-				response.resetBuffer();
-				e.printStackTrace();
-				out.println(e.toString());
+			Map<String, String[]> parameterMap = request.getParameterMap();
+			RestRequest resourceValues = new RestRequest(servInfo);
+			File[] array;
+			switch (resourceValues.c) {
+			case ADD:
+
+				break;
+			case CLEAR:
+			case LIST:
+				array = new File(musicHome).listFiles();
+				List<RepertoireDefinition> listRepertoire = new ArrayList<RepertoireDefinition>();
+				for (int i = 0; i < array.length; i++) {
+					listRepertoire.add(new RepertoireDefinition(musicHome,
+							array[i].getName()));
+				}
+				response.getWriter().write(
+						new ObjectMapper().writeValueAsString(listRepertoire));
+				break;
+			case NEXT:
+			case OPEN:
+			case ORDER:
+			case PAUSE:
+			case PLAY:
+			case PLAYLIST:
+			case PLAYPLAYLIST:
+			case PREVIOUS:
+			case REMOVE:
+			case SEEK:
+			case STATE:
+			case STOP:
+			case VOLUME:
+			case NONE:
+				response.sendError(HttpServletResponse.SC_NOT_FOUND);
+				break;
+			default:
+				response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+				break;
 			}
 			out.close();
+			out.flush();
 		}
 	}
 

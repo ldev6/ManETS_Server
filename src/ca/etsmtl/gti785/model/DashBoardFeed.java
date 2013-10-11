@@ -7,35 +7,64 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DashBoardFeed extends Feed {
 
-    private ArrayList<DataSource> dataSources;
-    private Settings settings;
+	private ArrayList<DataSource> dataSources;
+	private Settings settings;
 
-    // //
-    // // Accessors
-    // //
+	public DashBoardFeed(ArrayList<DataSource> dataSources, Settings settings) {
+		super();
+		this.dataSources = dataSources;
+		this.settings = settings;
+	}
 
-    public Settings getSettings() {
-        return settings;
-    }
+	// //
+	// // Accessors
+	// //
 
-    public ArrayList<DataSource> getDataSources() {
-        return dataSources;
-    }
+	public Settings getSettings() {
+		return settings;
+	}
 
-    // //
-    // // Inner Class
-    // //
+	public ArrayList<DataSource> getDataSources() {
+		return dataSources;
+	}
 
-    public static class Settings {
+	// //
+	// // Inner Class
+	// //
 
-        private Expirations expirations = new Expirations();
-        // //
-        // // Accessors
-        // //
+	public static class Settings {
 
-        public Expirations getExpiration() {
-            return expirations;
-        }
-    }
+		private Expirations expirations = new Expirations();
+		public boolean canStream = false;
+
+		// //
+		// // Accessors
+		// //
+
+		public Expirations getExpiration() {
+			return expirations;
+		}
+
+		public Settings() {
+			// TODO Auto-generated constructor stub
+		}
+
+		public Expirations getExpirations() {
+			return expirations;
+		}
+
+		public void setExpirations(Expirations expirations) {
+			this.expirations = expirations;
+		}
+
+		public boolean isCanStream() {
+			return canStream;
+		}
+
+		public void setCanStream(boolean canStream) {
+			this.canStream = canStream;
+		}
+
+	}
 
 }
