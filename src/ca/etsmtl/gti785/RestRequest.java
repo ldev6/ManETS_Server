@@ -67,7 +67,6 @@ class RestRequest {
 
 		matcher = openPattern.matcher(pathInfo);
 		if (matcher.find()) {
-			id = Integer.parseInt(matcher.group(1));
 			c = Controller.OPEN;
 			return;
 		}
@@ -93,7 +92,8 @@ class RestRequest {
 
 		matcher = nextPattern.matcher(pathInfo);
 		if (matcher.find()) {
-			id = Integer.parseInt(matcher.group(1));
+			System.out.println("matcher next ="+matcher.group());
+			//id = Integer.parseInt(matcher.group(1));
 			c = Controller.NEXT;
 			return;
 		}
@@ -125,7 +125,6 @@ class RestRequest {
 
 		matcher = previousPattern.matcher(pathInfo);
 		if (matcher.find()) {
-			id = Integer.parseInt(matcher.group(1));
 			c = Controller.PREVIOUS;
 			return;
 		}
@@ -156,7 +155,7 @@ class RestRequest {
 		}
 
 		id = -404;
-		c = c = Controller.NONE;
+		c = Controller.NONE;
 		return;
 	}
 
