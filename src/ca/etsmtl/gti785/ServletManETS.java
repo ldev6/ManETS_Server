@@ -224,32 +224,49 @@ public class ServletManETS extends HttpServlet {
 
 	private void manageNextRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
-		
+
+		// TODO: TEST
+
+		if (mediaPlayer.isPlaying()) {
+			if (!playlists.hasReachedEnd()) {
+				mediaPlayer.playMedia(playlists.getNext(), "");
+			}
+		}
 	}
 
 	private void manageVolumeRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
-
+			Map<String, String[]> parameterMap) throws IOException {
+		if (parameterMap.containsKey("value")) {
+			int vol = Integer.parseInt(parameterMap.get("value")[0]);
+			mediaPlayer.setVolume(vol);
+			response.setStatus(200);
+		} else {
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+		}
 	}
 
 	private void manageStopRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
 
+		if (mediaPlayer.isPlaying()) {
+			mediaPlayer.stop();
+		}
 	}
 
 	private void manageStateRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
 		// TODO Auto-generated method stub
-
 	}
 
 	private void manageSeekRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
-
+			Map<String, String[]> parameterMap) throws IOException {
+		if (parameterMap.containsKey("value")) {
+			int seek = Integer.parseInt(parameterMap.get("value")[0]);
+			mediaPlayer.setPosition(seek);
+			response.setStatus(200);
+		} else {
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+		}
 	}
 
 	private void manageRemoveRequest(HttpServletResponse response,
@@ -279,19 +296,21 @@ public class ServletManETS extends HttpServlet {
 	private void managePlayRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
 		// TODO Auto-generated method stub
-
+		if (mediaPlayer.isPlayable()) {
+			mediaPlayer.play();
+		}
 	}
 
 	private void managePauseRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
-
+		if (mediaPlayer.canPause()) {
+			mediaPlayer.pause();
+		}
 	}
 
 	private void manageOrderRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
-
+		playlists.randomise();
 	}
 
 	private void manageClearRequest(HttpServletResponse response,
