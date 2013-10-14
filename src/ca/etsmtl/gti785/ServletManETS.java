@@ -265,7 +265,6 @@ public class ServletManETS extends HttpServlet {
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 		}
-		
 	}
 
 	private void manageVolumeRequest(HttpServletResponse response,
@@ -299,23 +298,25 @@ public class ServletManETS extends HttpServlet {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
 			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
-		
+
 	}
+
+
 
 	private void manageStateRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
 		response.getStatus();
 		// TODO Auto-generated method stub
-
 	}
 
 	private void manageSeekRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) throws IOException{
-		if(mediaPlayer.isSeekable()){
-			mediaManager.seek(playlists.paths.get(listIdPlay), 5f);
-		}else{
-			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
-			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
+			Map<String, String[]> parameterMap) throws IOException {
+		if (parameterMap.containsKey("value")) {
+			int seek = Integer.parseInt(parameterMap.get("value")[0]);
+			mediaPlayer.setPosition(seek);
+			response.setStatus(200);
+		} else {
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 
 	}
@@ -357,10 +358,13 @@ public class ServletManETS extends HttpServlet {
 	private void managePlayRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
 		// TODO Auto-generated method stub
-
+		if (mediaPlayer.isPlayable()) {
+			mediaPlayer.play();
+		}
 	}
 
 	private void managePauseRequest(HttpServletResponse response,
+<<<<<<< HEAD
 			Map<String, String[]> parameterMap) throws  IOException{
 		if(mediaPlayer.canPause()){
 			mediaPlayer.pause();
@@ -371,12 +375,17 @@ public class ServletManETS extends HttpServlet {
 			
 		}
 
+=======
+			Map<String, String[]> parameterMap) {
+		if (mediaPlayer.canPause()) {
+			mediaPlayer.pause();
+		}
+>>>>>>> dc0a619deb291cff8d3377b5705f85bb511ae18f
 	}
 
 	private void manageOrderRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
-
+		playlists.randomise();
 	}
 
 	private void manageClearRequest(HttpServletResponse response,
