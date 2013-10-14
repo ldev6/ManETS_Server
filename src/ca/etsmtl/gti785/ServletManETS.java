@@ -287,22 +287,6 @@ public class ServletManETS extends HttpServlet {
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 
-			Map<String, String[]> parameterMap) throws IOException {
-		if (parameterMap.containsKey("value")) {
-			int vol = Integer.parseInt(parameterMap.get("value")[0]);
-			mediaPlayer.setVolume(vol);
-			response.setStatus(200);
-		} else {
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-		}
-			Map<String, String[]> parameterMap) throws IOException {
-		if (parameterMap.containsKey("value")) {
-			int vol = Integer.parseInt(parameterMap.get("value")[0]);
-			mediaPlayer.setVolume(vol);
-			response.setStatus(200);
-		} else {
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-		}
 	}
 
 	private void manageStopRequest(HttpServletResponse response,
@@ -313,11 +297,6 @@ public class ServletManETS extends HttpServlet {
 		}else{
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
 			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-		}
-			Map<String, String[]> parameterMap) {
-
-		if (mediaPlayer.isPlaying()) {
-			mediaPlayer.stop();
 		}
 	}
 
@@ -330,8 +309,7 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void manageSeekRequest(HttpServletResponse response,
-
-
+			Map<String, String[]> parameterMap)throws  IOException {
 		
 		if (parameterMap.containsKey("value")) {
 			int seek = Integer.parseInt(parameterMap.get("value")[0]);
