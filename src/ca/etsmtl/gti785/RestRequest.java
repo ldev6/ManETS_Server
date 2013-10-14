@@ -28,7 +28,9 @@ class RestRequest {
 	//private Pattern volumePattern = Pattern.compile("/volume/([0-9]*)");
 	private Pattern volumePattern = Pattern.compile("/volume");
 
-	private Pattern seekPattern = Pattern.compile("/seek/([0-9]*)");
+	//private Pattern seekPattern = Pattern.compile("/seek/([0-9]*)");
+	private Pattern seekPattern = Pattern.compile("/seek");
+
 
 	private Pattern playlistPattern = Pattern.compile("/playlist");
 
@@ -106,7 +108,7 @@ class RestRequest {
 
 		matcher = seekPattern.matcher(pathInfo);
 		if (matcher.find()) {
-			id = Integer.parseInt(matcher.group(1));
+			//id = Integer.parseInt(matcher.group(1));
 			c = Controller.SEEK;
 			return;
 		}

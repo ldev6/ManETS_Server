@@ -14,13 +14,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-
-
-
-
-
-import uk.co.caprica.vlcj.medialist.MediaList;
 import uk.co.caprica.vlcj.binding.LibVlc;
 import uk.co.caprica.vlcj.player.MediaPlayerFactory;
 import uk.co.caprica.vlcj.player.headless.HeadlessMediaPlayer;
@@ -253,13 +246,16 @@ public class ServletManETS extends HttpServlet {
 
 	private void manageNextRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws  IOException{
-		// TODO Auto-generated method stub
 		System.out.println("do something in next"+listIdPlay);
 		if(listIdPlay<playlists.paths.size()-1){
 			listIdPlay++;
 			mediaPlayer.stop();
 			if(mediaPlayer.playMedia(playlists.paths.get(listIdPlay))){
 				response.setStatus(HttpServletResponse.SC_OK);
+				Media media = new Media(mediaPlayer.getMediaMeta(), playlists.paths.get(listIdPlay));
+				serveurState.setCurrentMedia(media);
+				response.getWriter().write(
+						new ObjectMapper().writeValueAsString(serveurState));
 			}
 		}else{
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -278,6 +274,9 @@ public class ServletManETS extends HttpServlet {
 				mediaPlayer.setVolume(volume);
 				response.setStatus(HttpServletResponse.SC_OK);
 				serveurState.setVolume(volume);
+				response.getWriter().write(
+						new ObjectMapper().writeValueAsString(serveurState));
+				
 			}else{
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 				response.sendError(HttpServletResponse.SC_BAD_REQUEST);
@@ -294,6 +293,9 @@ public class ServletManETS extends HttpServlet {
 		if(mediaPlayer.canPause()){
 			mediaPlayer.stop();
 			response.setStatus(HttpServletResponse.SC_OK);
+			serveurState.setCurrentMedia(null);
+			response.getWriter().write(
+					new ObjectMapper().writeValueAsString(serveurState));
 		}else{
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
 			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -303,14 +305,14 @@ public class ServletManETS extends HttpServlet {
 
 
 	private void manageStateRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		response.getStatus();
-		// TODO Auto-generated method stub
+			Map<String, String[]> parameterMap) throws JsonProcessingException, IOException{
+		response.setStatus(HttpServletResponse.SC_OK);
+		response.getWriter().write(
+				new ObjectMapper().writeValueAsString(serveurState));
 	}
 
 	private void manageSeekRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap)throws  IOException {
-		
+			Map<String, String[]> parameterMap)throws JsonProcessingException, IOException {
 		if (parameterMap.containsKey("value")) {
 			int seek = Integer.parseInt(parameterMap.get("value")[0]);
 			mediaPlayer.setPosition(seek);
@@ -327,12 +329,17 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void managePreviousRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) throws  IOException{
+			Map<String, String[]> parameterMap) throws JsonProcessingException, IOException{
 		if(listIdPlay>0){
 			listIdPlay--;
 			mediaPlayer.stop();
 			if(mediaPlayer.playMedia(playlists.paths.get(listIdPlay))){
 				response.setStatus(200);
+				Media media = new Media(mediaPlayer.getMediaMeta(), playlists.paths.get(listIdPlay));
+				serveurState.setCurrentMedia(media);
+				response.getWriter().write(
+						new ObjectMapper().writeValueAsString(serveurState));
+				
 			}
 		}else{
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -363,10 +370,17 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void managePauseRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) throws  IOException{
+			Map<String, String[]> parameterMap) throws JsonProcessingException, IOException{
 		if(mediaPlayer.canPause()){
 			mediaPlayer.pause();
 			response.setStatus(HttpServletResponse.SC_OK);
+			if(mediaPlayer.isPlaying()){
+				serveurState.setPause(false);
+			}else{
+				serveurState.setPause(true);
+			}
+			response.getWriter().write(
+					new ObjectMapper().writeValueAsString(serveurState));
 		}else{
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -416,7 +430,8 @@ public class ServletManETS extends HttpServlet {
 						}
 						System.out.println(">>Path asked : " + path);
 						serveurState = new ServeurState(media, listIdPlay, mediaPlayer.getVolume());
-						//TODO send JSON
+						response.getWriter().write(
+								new ObjectMapper().writeValueAsString(serveurState));
 					
 					}else{
 						System.out.println("wtf !!!!!!!!");
