@@ -8,12 +8,12 @@
 	<classpathentry exported="true" kind="lib" path="WebContent/WEB-INF/lib/platform-3.5.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="WebContent/WEB-INF/lib/vlcj-2.4.1.jar">
 		<attributes>
-			<attribute name="javadoc_location" value="jar:file:/Users/ldev6/workspaceGTI785/ManETS_Server/JavaDoc/vlcj-2.4.1-javadoc.jar!/"/>
+			<attribute name="javadoc_location" value="jar:platform:/resource/ManETS_Server/JavaDoc/vlcj-2.4.1-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/jackson-annotations-2.2.3.jar"/>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/jackson-core-2.2.3.jar"/>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/jackson-databind-2.2.3.jar"/>
+	<classpathentry exported="true" kind="lib" path="WebContent/WEB-INF/lib/jackson-annotations-2.2.3.jar"/>
+	<classpathentry exported="true" kind="lib" path="WebContent/WEB-INF/lib/jackson-core-2.2.3.jar"/>
+	<classpathentry exported="true" kind="lib" path="WebContent/WEB-INF/lib/jackson-databind-2.2.3.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

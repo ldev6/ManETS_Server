@@ -3,8 +3,6 @@ package ca.etsmtl.gti785;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.servlet.ServletException;
-
 /**
  * @author http://software.danielwatrous.com/restful-java-servlet/
  */
@@ -92,8 +90,8 @@ class RestRequest {
 
 		matcher = nextPattern.matcher(pathInfo);
 		if (matcher.find()) {
-			System.out.println("matcher next ="+matcher.group());
-			//id = Integer.parseInt(matcher.group(1));
+			System.out.println("matcher next =" + matcher.group());
+			// id = Integer.parseInt(matcher.group(1));
 			c = Controller.NEXT;
 			return;
 		}
