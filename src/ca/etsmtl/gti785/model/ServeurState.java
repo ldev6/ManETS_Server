@@ -8,11 +8,12 @@ public class ServeurState {
 	Media currentMedia;
 	int currentID;
 	boolean pause;
-    long currentPosition;
+    float currentPosition;
     int volume;
     
+    
 	
-	public ServeurState(Media media, int id, int volume) {
+	public ServeurState(Media media, int id, int volume, float currentPosition) {
 		currentMedia = media;
 		currentID = id;
 		pause = false;
@@ -38,7 +39,7 @@ public class ServeurState {
 	public void setPause(boolean pause) {
 		this.pause = pause;
 	}
-	public long getCurrentPosition() {
+	public float getCurrentPosition() {
 		return currentPosition;
 	}
 	public void setCurrentPosition(long currentPosition) {
@@ -52,6 +53,8 @@ public class ServeurState {
 	}
 
   
+	
+	
     
 
 }

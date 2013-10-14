@@ -22,24 +22,25 @@ public class Media {
     	titre = mediaMeta.getTitle();
 		artist = mediaMeta.getArtist();
 		album = mediaMeta.getAlbum();
+		duree = 
 		this.path = path;
 	}
 
 	public String getMedia() {
-        return media;
-    }
+		return media;
+	}
 
-    public void setMedia(String media) {
-        this.media = media;
-    }
+	public void setMedia(String media) {
+		this.media = media;
+	}
 
-    public String getTitre() {
-        return titre;
-    }
+	public String getTitre() {
+		return titre;
+	}
 
-    public void setTitre(String titre) {
-        this.titre = titre;
-    }
+	public void setTitre(String titre) {
+		this.titre = titre;
+	}
 
     public String getArtist() {
         return artist;
@@ -49,27 +50,27 @@ public class Media {
         this.artist = artiste;
     }
 
-    public String getDuree() {
-        return duree;
-    }
+	public String getDuree() {
+		return duree;
+	}
 
-    public void setDuree(String duree) {
-        this.duree = duree;
-    }
+	public void setDuree(String duree) {
+		this.duree = duree;
+	}
 
-    public String getAlbum() {
-        return album;
-    }
+	public String getAlbum() {
+		return album;
+	}
 
-    public void setAlbum(String album) {
-        this.album = album;
-    }
+	public void setAlbum(String album) {
+		this.album = album;
+	}
 
-    public String getPath() {
-        return path;
-    }
+	public String getPath() {
+		return path;
+	}
 
-    public void setPath(String path) {
-        this.path = path;
-    }
+	public void setPath(String path) {
+		this.path = path;
+	}
 }

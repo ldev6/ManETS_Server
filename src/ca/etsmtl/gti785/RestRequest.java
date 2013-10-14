@@ -3,8 +3,6 @@ package ca.etsmtl.gti785;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.servlet.ServletException;
-
 /**
  * @author http://software.danielwatrous.com/restful-java-servlet/
  */

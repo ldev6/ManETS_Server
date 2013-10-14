@@ -126,8 +126,10 @@ public class ServletManETS extends HttpServlet {
 		final MediaPlayerFactory mediaPlayerFactory = new MediaPlayerFactory();
 
 		mediaPlayer = mediaPlayerFactory.newHeadlessMediaPlayer();
+		// mediaPlayer.addMediaPlayerEventListener(arg0);
 		mediaManager = mediaPlayerFactory.newMediaManager();
 		assert mediaPlayer != null;
+		mediaPlayerFactory.release();
 	}
 
 	private static String checkVideoExist() {
@@ -206,7 +208,7 @@ public class ServletManETS extends HttpServlet {
 				managePauseRequest(response, parameterMap);
 				break;
 			case PLAY:
-				managePlayRequest(response, parameterMap);
+				// managePlayRequest(response, parameterMap);
 				break;
 			case PLAYLIST:
 				managePlaylistRequest(response, parameterMap);
@@ -246,18 +248,18 @@ public class ServletManETS extends HttpServlet {
 
 	private void manageNextRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws  IOException{
-		System.out.println("do something in next"+listIdPlay);
-		if(listIdPlay<playlists.paths.size()-1){
+		System.out.println("do something in next" + listIdPlay);
+		if (listIdPlay < playlists.paths.size() - 1) {
 			listIdPlay++;
 			mediaPlayer.stop();
-			if(mediaPlayer.playMedia(playlists.paths.get(listIdPlay))){
+			if (mediaPlayer.playMedia(playlists.paths.get(listIdPlay))) {
 				response.setStatus(HttpServletResponse.SC_OK);
 				Media media = new Media(mediaPlayer.getMediaMeta(), playlists.paths.get(listIdPlay));
 				serveurState.setCurrentMedia(media);
 				response.getWriter().write(
 						new ObjectMapper().writeValueAsString(serveurState));
 			}
-		}else{
+		} else {
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 		}
@@ -330,10 +332,10 @@ public class ServletManETS extends HttpServlet {
 
 	private void managePreviousRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws JsonProcessingException, IOException{
-		if(listIdPlay>0){
+		if (listIdPlay > 0) {
 			listIdPlay--;
 			mediaPlayer.stop();
-			if(mediaPlayer.playMedia(playlists.paths.get(listIdPlay))){
+			if (mediaPlayer.playMedia(playlists.paths.get(listIdPlay))) {
 				response.setStatus(200);
 				Media media = new Media(mediaPlayer.getMediaMeta(), playlists.paths.get(listIdPlay));
 				serveurState.setCurrentMedia(media);
@@ -341,7 +343,7 @@ public class ServletManETS extends HttpServlet {
 						new ObjectMapper().writeValueAsString(serveurState));
 				
 			}
-		}else{
+		} else {
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 			
@@ -361,13 +363,26 @@ public class ServletManETS extends HttpServlet {
 
 	}
 
-	private void managePlayRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
-		if (mediaPlayer.isPlayable()) {
-			mediaPlayer.play();
-		}
-	}
+	// private void managePlayRequest(HttpServletResponse response,
+	// Map<String, String[]> parameterMap) {
+	//
+	//
+	// if (parameterMap.containsKey("value")) {
+	// int vol = Integer.parseInt(parameterMap.get("value")[0]);
+	// mediaPlayer.setVolume(vol);
+	// response.setStatus(200);
+	// } else {
+	// response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+	// }
+	//
+	//
+	//
+	//
+	//
+	// if (mediaPlayer.isPlayable()) {
+	// mediaPlayer.play();
+	// }
+	// }
 
 	private void managePauseRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws JsonProcessingException, IOException{
@@ -403,11 +418,12 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void manageOpenRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) throws JsonProcessingException, IOException {
-		
-		listIdPlay =0;
+			Map<String, String[]> parameterMap) throws JsonProcessingException,
+			IOException {
+
+		listIdPlay = 0;
 		File[] array = null;
-		String path="";
+		String path = "";
 
 		if (parameterMap.containsKey("path")) {
 			path += parameterMap.get("path")[0];
@@ -429,12 +445,11 @@ public class ServletManETS extends HttpServlet {
 							mediaPlayer.playNextSubItem(playlists.paths.get(i));
 						}
 						System.out.println(">>Path asked : " + path);
-						serveurState = new ServeurState(media, listIdPlay, mediaPlayer.getVolume());
+						serveurState = new ServeurState(media, listIdPlay, mediaPlayer.getVolume(), mediaPlayer.getPosition());
 						response.getWriter().write(
 								new ObjectMapper().writeValueAsString(serveurState));
 					
 					}else{
-						System.out.println("wtf !!!!!!!!");
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
 						response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
 					}
@@ -443,6 +458,8 @@ public class ServletManETS extends HttpServlet {
 					response.sendError(HttpServletResponse.SC_NOT_FOUND );
 				}
 			}catch(Exception e){
+			}
+			if (mediaPlayer.playMedia(playlists.paths.get(0))) {
 				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
 				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
 			}
@@ -507,4 +524,9 @@ public class ServletManETS extends HttpServlet {
 		out.flush();
 	}
 
+	@Override
+	public void destroy() {
+		super.destroy();
+		mediaPlayer.release();
+	}
 }
