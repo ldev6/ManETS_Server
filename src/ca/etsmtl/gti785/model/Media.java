@@ -1,5 +1,7 @@
 package ca.etsmtl.gti785.model;
 
+import uk.co.caprica.vlcj.player.MediaMeta;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
@@ -8,12 +10,20 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Media {
 
-	String media;
-	String titre;
-	String artiste;
-	String duree;
-	String album;
-	String path;
+    String media;
+    String titre;
+    String artist;
+    String duree;
+    String album;
+    String path;
+    
+
+    public Media(MediaMeta mediaMeta, String path) {
+    	titre = mediaMeta.getTitle();
+		artist = mediaMeta.getArtist();
+		album = mediaMeta.getAlbum();
+		this.path = path;
+	}
 
 	public String getMedia() {
 		return media;
@@ -31,13 +41,13 @@ public class Media {
 		this.titre = titre;
 	}
 
-	public String getArtiste() {
-		return artiste;
-	}
+    public String getArtist() {
+        return artist;
+    }
 
-	public void setArtiste(String artiste) {
-		this.artiste = artiste;
-	}
+    public void setArtiste(String artiste) {
+        this.artist = artiste;
+    }
 
 	public String getDuree() {
 		return duree;

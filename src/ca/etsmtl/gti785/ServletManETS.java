@@ -15,19 +15,28 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+
+
+
+
+
+import uk.co.caprica.vlcj.medialist.MediaList;
 import uk.co.caprica.vlcj.binding.LibVlc;
 import uk.co.caprica.vlcj.binding.internal.libvlc_media_t;
 import uk.co.caprica.vlcj.player.MediaPlayer;
 import uk.co.caprica.vlcj.player.MediaPlayerEventListener;
 import uk.co.caprica.vlcj.player.MediaPlayerFactory;
 import uk.co.caprica.vlcj.player.headless.HeadlessMediaPlayer;
+import uk.co.caprica.vlcj.player.manager.MediaManager;
 import uk.co.caprica.vlcj.runtime.RuntimeUtil;
 import ca.etsmtl.gti785.model.DashBoardFeed;
 import ca.etsmtl.gti785.model.DashBoardFeed.Settings;
 import ca.etsmtl.gti785.model.DataSource;
+import ca.etsmtl.gti785.model.Media;
 import ca.etsmtl.gti785.model.PlayList;
 import ca.etsmtl.gti785.model.PlayerState;
 import ca.etsmtl.gti785.model.RepertoireDefinition;
+import ca.etsmtl.gti785.model.ServeurState;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -64,6 +73,22 @@ public class ServletManETS extends HttpServlet {
 			return false;
 		}
 	};
+	
+	private static final FileFilter musicFilter = new FileFilter(){
+		
+		public boolean accept(File file) {
+			String path = file.getAbsolutePath().toLowerCase();
+			for (int i = 0, n = extensions.length; i < n; i++) {
+				String extension = extensions[i];
+				if ((path.endsWith(extension) && (path.charAt(path.length()
+						- extension.length() - 1)) == '.')) {
+					return true;
+				}
+			}
+			return false;
+		}
+	};
+	
 	// EXECUTED AT START, ONLY ONE TIME
 	static {
 		NativeLibrary.addSearchPath(RuntimeUtil.getLibVlcLibraryName(),
@@ -98,8 +123,10 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private HeadlessMediaPlayer mediaPlayer;
+	private MediaManager mediaManager;
 	private PlayList playlists = new PlayList();
 	private int listIdPlay = 0;
+	private ServeurState serveurState;
 
 	/**
 	 * @see HttpServlet#HttpServlet()
@@ -111,6 +138,7 @@ public class ServletManETS extends HttpServlet {
 
 		mediaPlayer = mediaPlayerFactory.newHeadlessMediaPlayer();
 		// mediaPlayer.addMediaPlayerEventListener(arg0);
+		mediaManager = mediaPlayerFactory.newMediaManager();
 		assert mediaPlayer != null;
 		mediaPlayerFactory.release();
 	}
@@ -230,7 +258,7 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void manageNextRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
+			Map<String, String[]> parameterMap) throws  IOException{
 		System.out.println("do something in next" + listIdPlay);
 		if (listIdPlay < playlists.paths.size() - 1) {
 			listIdPlay++;
@@ -240,27 +268,44 @@ public class ServletManETS extends HttpServlet {
 			}
 		} else {
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 		}
 	}
 
 	private void manageVolumeRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) throws IOException {
+			Map<String, String[]> parameterMap)throws IOException {
+		
+		int volume;
 		if (parameterMap.containsKey("value")) {
-			int vol = Integer.parseInt(parameterMap.get("value")[0]);
-			mediaPlayer.setVolume(vol);
-			response.setStatus(200);
-		} else {
+			volume = Integer.parseInt(parameterMap.get("value")[0]);
+			System.out.println("volume = "+volume);
+			if(volume>=0 && volume <201){
+				mediaPlayer.setVolume(volume);
+				response.setStatus(HttpServletResponse.SC_OK);
+				serveurState.setVolume(volume);
+			}else{
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+			}
+		}else{
+			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
+
 	}
 
 	private void manageStopRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-
-		if (mediaPlayer.isPlaying()) {
+			Map<String, String[]> parameterMap) throws IOException{
+		if(mediaPlayer.canPause()){
 			mediaPlayer.stop();
+			response.setStatus(HttpServletResponse.SC_OK);
+		}else{
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
+			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
 	}
+
+
 
 	private void manageStateRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws JsonProcessingException,
@@ -279,7 +324,8 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void manageSeekRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) throws IOException {
+			Map<String, String[]> parameterMap)throws  IOException {
+		
 		if (parameterMap.containsKey("value")) {
 			int seek = Integer.parseInt(parameterMap.get("value")[0]);
 			mediaPlayer.setPosition(seek);
@@ -296,8 +342,7 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void managePreviousRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
+			Map<String, String[]> parameterMap) throws  IOException{
 		if (listIdPlay > 0) {
 			listIdPlay--;
 			mediaPlayer.stop();
@@ -306,6 +351,8 @@ public class ServletManETS extends HttpServlet {
 			}
 		} else {
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+			response.sendError(HttpServletResponse.SC_NOT_FOUND);
+			
 		}
 
 	}
@@ -318,7 +365,7 @@ public class ServletManETS extends HttpServlet {
 
 	private void managePlaylistRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
+		//TODO
 
 	}
 
@@ -344,10 +391,18 @@ public class ServletManETS extends HttpServlet {
 	// }
 
 	private void managePauseRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		if (mediaPlayer.canPause()) {
+			Map<String, String[]> parameterMap) throws  IOException{
+		if(mediaPlayer.canPause()){
 			mediaPlayer.pause();
+			response.setStatus(HttpServletResponse.SC_OK);
+		}else{
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			
 		}
+
+
+
 	}
 
 	private void manageOrderRequest(HttpServletResponse response,
@@ -373,23 +428,43 @@ public class ServletManETS extends HttpServlet {
 			path += parameterMap.get("path")[0];
 			mediaPlayer.stop();
 			playlists.paths.clear();
-			array = new File(path).listFiles(fileFilter);
-			// mediaPlayer.setPlaySubItems(true);
+			array = new File(path).listFiles(musicFilter);
+			mediaPlayer.setPlaySubItems(true);
 
-			for (int i = 0; i < array.length; i++) {
-				playlists.paths.add(array[i].getAbsolutePath());
+			for(int i=0; i<array.length; i++){
+		    	playlists.paths.add(array[i].getAbsolutePath());
+		    }
+			try{
+				if(array.length>0){
+					if(mediaPlayer.playMedia(playlists.paths.get(0))){
+						Media media = new Media(mediaPlayer.getMediaMeta(),playlists.paths.get(0));
+						response.setStatus(HttpServletResponse.SC_OK);
+						
+						for(int i=1; i<playlists.paths.size(); i++){
+							mediaPlayer.playNextSubItem(playlists.paths.get(i));
+						}
+						System.out.println(">>Path asked : " + path);
+						serveurState = new ServeurState(media, listIdPlay, mediaPlayer.getVolume());
+						//TODO send JSON
+					
+					}else{
+						System.out.println("wtf !!!!!!!!");
+						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
+						response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
+					}
+				}else{
+					response.setStatus(HttpServletResponse.SC_NOT_FOUND );
+					response.sendError(HttpServletResponse.SC_NOT_FOUND );
+				}
+			}catch(Exception e){
 			}
 			if (mediaPlayer.playMedia(playlists.paths.get(0))) {
-				response.setStatus(HttpServletResponse.SC_OK);
-			} else {
-				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
+				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
 			}
-			for (int i = 1; i < playlists.paths.size(); i++) {
-				mediaPlayer.playNextSubItem(playlists.paths.get(i));
-			}
-
-			System.out.println(">>Path asked : " + path);
-		} else {
+		}
+	
+		 else {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 		}
 

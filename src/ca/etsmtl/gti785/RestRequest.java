@@ -23,7 +23,8 @@ class RestRequest {
 
 	private Pattern nextPattern = Pattern.compile("/next");
 
-	private Pattern volumePattern = Pattern.compile("/volume/([0-9]*)");
+	//private Pattern volumePattern = Pattern.compile("/volume/([0-9]*)");
+	private Pattern volumePattern = Pattern.compile("/volume");
 
 	private Pattern seekPattern = Pattern.compile("/seek/([0-9]*)");
 
@@ -77,7 +78,6 @@ class RestRequest {
 
 		matcher = pausePattern.matcher(pathInfo);
 		if (matcher.find()) {
-			id = Integer.parseInt(matcher.group(1));
 			c = Controller.PAUSE;
 			return;
 		}
@@ -90,8 +90,6 @@ class RestRequest {
 
 		matcher = nextPattern.matcher(pathInfo);
 		if (matcher.find()) {
-			System.out.println("matcher next =" + matcher.group());
-			// id = Integer.parseInt(matcher.group(1));
 			c = Controller.NEXT;
 			return;
 		}
@@ -99,6 +97,8 @@ class RestRequest {
 		matcher = volumePattern.matcher(pathInfo);
 		if (matcher.find()) {
 			c = Controller.VOLUME;
+			
+			System.out.println("VolumePatternMatcher id="+id+" c="+c);
 			return;
 		}
 

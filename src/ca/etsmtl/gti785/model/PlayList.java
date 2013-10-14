@@ -10,6 +10,7 @@ import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils.Collections;
  */
 public class PlayList extends Feed {
 	public List<String> paths = new ArrayList<String>();
+
 	public int index = 0;
 
 	public boolean hasReachedEnd() {
@@ -23,4 +24,5 @@ public class PlayList extends Feed {
 	public void randomise() {
 
 	}
+
 }
