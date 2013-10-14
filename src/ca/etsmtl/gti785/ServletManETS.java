@@ -295,6 +295,14 @@ public class ServletManETS extends HttpServlet {
 		} else {
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
+			Map<String, String[]> parameterMap) throws IOException {
+		if (parameterMap.containsKey("value")) {
+			int vol = Integer.parseInt(parameterMap.get("value")[0]);
+			mediaPlayer.setVolume(vol);
+			response.setStatus(200);
+		} else {
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+		}
 	}
 
 	private void manageStopRequest(HttpServletResponse response,
@@ -322,23 +330,16 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void manageSeekRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) throws IOException {
-		if (parameterMap.containsKey("value")) {
-			int seek = Integer.parseInt(parameterMap.get("value")[0]);
-			mediaPlayer.setPosition(seek);
-			response.setStatus(200);
-		} else {
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-		}
-			Map<String, String[]> parameterMap) throws IOException {
-		if (parameterMap.containsKey("value")) {
-			int seek = Integer.parseInt(parameterMap.get("value")[0]);
-			mediaPlayer.setPosition(seek);
-			response.setStatus(200);
-		} else {
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-		}
 
+
+		
+		if (parameterMap.containsKey("value")) {
+			int seek = Integer.parseInt(parameterMap.get("value")[0]);
+			mediaPlayer.setPosition(seek);
+			response.setStatus(200);
+		} else {
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+		}
 	}
 
 	private void manageRemoveRequest(HttpServletResponse response,
@@ -395,13 +396,7 @@ public class ServletManETS extends HttpServlet {
 		}
 
 
-			Map<String, String[]> parameterMap) {
-		if (mediaPlayer.canPause()) {
-			mediaPlayer.pause();
-		}
-		if (mediaPlayer.canPause()) {
-			mediaPlayer.pause();
-		}
+
 	}
 
 	private void manageOrderRequest(HttpServletResponse response,

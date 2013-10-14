@@ -25,17 +25,4 @@ public class PlayList extends Feed {
 		
 	}
 
-	public int index = 0;
-
-	public boolean hasReachedEnd() {
-		return index < paths.size();
-	}
-
-	public String getNext() {
-		return paths.get(index);
-	}
-
-	public void randomise() {
-		
-	}
 }
