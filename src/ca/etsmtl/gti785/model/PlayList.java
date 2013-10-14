@@ -8,4 +8,5 @@ import java.util.List;
  */
 public class PlayList extends Feed {
 	public List<String> paths = new ArrayList<String>();
+
 }

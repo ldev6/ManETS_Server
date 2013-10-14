@@ -17,16 +17,22 @@ import javax.servlet.http.HttpServletResponse;
 
 
 
+
+
+
 import uk.co.caprica.vlcj.medialist.MediaList;
 import uk.co.caprica.vlcj.binding.LibVlc;
 import uk.co.caprica.vlcj.player.MediaPlayerFactory;
 import uk.co.caprica.vlcj.player.headless.HeadlessMediaPlayer;
+import uk.co.caprica.vlcj.player.manager.MediaManager;
 import uk.co.caprica.vlcj.runtime.RuntimeUtil;
 import ca.etsmtl.gti785.model.DashBoardFeed;
 import ca.etsmtl.gti785.model.DashBoardFeed.Settings;
 import ca.etsmtl.gti785.model.DataSource;
+import ca.etsmtl.gti785.model.Media;
 import ca.etsmtl.gti785.model.PlayList;
 import ca.etsmtl.gti785.model.RepertoireDefinition;
+import ca.etsmtl.gti785.model.ServeurState;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,6 +69,22 @@ public class ServletManETS extends HttpServlet {
 			return false;
 		}
 	};
+	
+	private static final FileFilter musicFilter = new FileFilter(){
+		
+		public boolean accept(File file) {
+			String path = file.getAbsolutePath().toLowerCase();
+			for (int i = 0, n = extensions.length; i < n; i++) {
+				String extension = extensions[i];
+				if ((path.endsWith(extension) && (path.charAt(path.length()
+						- extension.length() - 1)) == '.')) {
+					return true;
+				}
+			}
+			return false;
+		}
+	};
+	
 	// EXECUTED AT START, ONLY ONE TIME
 	static {
 		NativeLibrary.addSearchPath(RuntimeUtil.getLibVlcLibraryName(),
@@ -97,8 +119,10 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private HeadlessMediaPlayer mediaPlayer;
+	private MediaManager mediaManager;
 	private PlayList playlists = new PlayList();
 	private int listIdPlay = 0;
+	private ServeurState serveurState;
 
 	/**
 	 * @see HttpServlet#HttpServlet()
@@ -109,6 +133,7 @@ public class ServletManETS extends HttpServlet {
 		final MediaPlayerFactory mediaPlayerFactory = new MediaPlayerFactory();
 
 		mediaPlayer = mediaPlayerFactory.newHeadlessMediaPlayer();
+		mediaManager = mediaPlayerFactory.newMediaManager();
 		assert mediaPlayer != null;
 	}
 
@@ -227,7 +252,7 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void manageNextRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
+			Map<String, String[]> parameterMap) throws  IOException{
 		// TODO Auto-generated method stub
 		System.out.println("do something in next"+listIdPlay);
 		if(listIdPlay<playlists.paths.size()-1){
@@ -238,31 +263,60 @@ public class ServletManETS extends HttpServlet {
 			}
 		}else{
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 		}
 		
 	}
 
 	private void manageVolumeRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
+			Map<String, String[]> parameterMap)throws IOException {
+		
+		int volume;
+		if (parameterMap.containsKey("value")) {
+			volume = Integer.parseInt(parameterMap.get("value")[0]);
+			System.out.println("volume = "+volume);
+			if(volume>=0 && volume <201){
+				mediaPlayer.setVolume(volume);
+				response.setStatus(HttpServletResponse.SC_OK);
+				serveurState.setVolume(volume);
+			}else{
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+			}
+		}else{
+			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+		}
 
 	}
 
 	private void manageStopRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
-
+			Map<String, String[]> parameterMap) throws IOException{
+		if(mediaPlayer.canPause()){
+			mediaPlayer.stop();
+			response.setStatus(HttpServletResponse.SC_OK);
+		}else{
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
+			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+		}
+		
 	}
 
 	private void manageStateRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
+		response.getStatus();
 		// TODO Auto-generated method stub
 
 	}
 
 	private void manageSeekRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
+			Map<String, String[]> parameterMap) throws IOException{
+		if(mediaPlayer.isSeekable()){
+			mediaManager.seek(playlists.paths.get(listIdPlay), 5f);
+		}else{
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
+			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
+		}
 
 	}
 
@@ -273,8 +327,7 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void managePreviousRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
+			Map<String, String[]> parameterMap) throws  IOException{
 		if(listIdPlay>0){
 			listIdPlay--;
 			mediaPlayer.stop();
@@ -283,6 +336,8 @@ public class ServletManETS extends HttpServlet {
 			}
 		}else{
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+			response.sendError(HttpServletResponse.SC_NOT_FOUND);
+			
 		}
 
 	}
@@ -295,7 +350,7 @@ public class ServletManETS extends HttpServlet {
 
 	private void managePlaylistRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
+		//TODO
 
 	}
 
@@ -306,8 +361,15 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void managePauseRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
+			Map<String, String[]> parameterMap) throws  IOException{
+		if(mediaPlayer.canPause()){
+			mediaPlayer.pause();
+			response.setStatus(HttpServletResponse.SC_OK);
+		}else{
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			
+		}
 
 	}
 
@@ -334,24 +396,40 @@ public class ServletManETS extends HttpServlet {
 			path += parameterMap.get("path")[0];
 			mediaPlayer.stop();
 			playlists.paths.clear();
-			array = new File(path).listFiles(fileFilter);
-			//mediaPlayer.setPlaySubItems(true);
+			array = new File(path).listFiles(musicFilter);
+			mediaPlayer.setPlaySubItems(true);
 
 			for(int i=0; i<array.length; i++){
 		    	playlists.paths.add(array[i].getAbsolutePath());
 		    }
-			if(mediaPlayer.playMedia(playlists.paths.get(0))){
-				response.setStatus(HttpServletResponse.SC_OK);
-			}else{
+			try{
+				if(array.length>0){
+					if(mediaPlayer.playMedia(playlists.paths.get(0))){
+						Media media = new Media(mediaPlayer.getMediaMeta(),playlists.paths.get(0));
+						response.setStatus(HttpServletResponse.SC_OK);
+						
+						for(int i=1; i<playlists.paths.size(); i++){
+							mediaPlayer.playNextSubItem(playlists.paths.get(i));
+						}
+						System.out.println(">>Path asked : " + path);
+						serveurState = new ServeurState(media, listIdPlay, mediaPlayer.getVolume());
+						//TODO send JSON
+					
+					}else{
+						System.out.println("wtf !!!!!!!!");
+						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
+						response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
+					}
+				}else{
+					response.setStatus(HttpServletResponse.SC_NOT_FOUND );
+					response.sendError(HttpServletResponse.SC_NOT_FOUND );
+				}
+			}catch(Exception e){
 				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
+				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR );
 			}
-			for(int i=1; i<playlists.paths.size(); i++){
-				mediaPlayer.playNextSubItem(playlists.paths.get(i));
-			}
-
-
-			System.out.println(">>Path asked : " + path);
 		}
+	
 		 else {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 		}
