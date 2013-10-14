@@ -335,6 +335,7 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void managePreviousRequest(HttpServletResponse response,
+			Map<String, String[]> parameterMap) throws JsonProcessingException, IOException{
 		if(listIdPlay>0){
 			listIdPlay--;
 			mediaPlayer.stop();
