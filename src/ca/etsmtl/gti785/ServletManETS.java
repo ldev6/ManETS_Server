@@ -15,6 +15,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import uk.co.caprica.vlcj.binding.LibVlc;
+import uk.co.caprica.vlcj.binding.internal.libvlc_media_t;
+import uk.co.caprica.vlcj.player.MediaPlayer;
+import uk.co.caprica.vlcj.player.MediaPlayerEventListener;
 import uk.co.caprica.vlcj.player.MediaPlayerFactory;
 import uk.co.caprica.vlcj.player.headless.HeadlessMediaPlayer;
 import uk.co.caprica.vlcj.player.manager.MediaManager;
@@ -24,6 +27,7 @@ import ca.etsmtl.gti785.model.DashBoardFeed.Settings;
 import ca.etsmtl.gti785.model.DataSource;
 import ca.etsmtl.gti785.model.Media;
 import ca.etsmtl.gti785.model.PlayList;
+import ca.etsmtl.gti785.model.PlayerState;
 import ca.etsmtl.gti785.model.RepertoireDefinition;
 import ca.etsmtl.gti785.model.ServeurState;
 
@@ -331,8 +335,7 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void managePreviousRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) throws JsonProcessingException, IOException{
-		if (listIdPlay > 0) {
+		if(listIdPlay>0){
 			listIdPlay--;
 			mediaPlayer.stop();
 			if (mediaPlayer.playMedia(playlists.paths.get(listIdPlay))) {
