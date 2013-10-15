@@ -25,6 +25,7 @@ import org.jaudiotagger.tag.TagException;
 
 import uk.co.caprica.vlcj.binding.LibVlc;
 import uk.co.caprica.vlcj.medialist.MediaList;
+import uk.co.caprica.vlcj.medialist.MediaListItem;
 import uk.co.caprica.vlcj.player.MediaPlayerFactory;
 import uk.co.caprica.vlcj.player.headless.HeadlessMediaPlayer;
 import uk.co.caprica.vlcj.player.list.MediaListPlayer;
@@ -140,6 +141,7 @@ public class ServletManETS extends HttpServlet {
 		headlessMediaPlayer = mediaPlayerFactory.newHeadlessMediaPlayer();
 
 		mediaPlayer = mediaPlayerFactory.newMediaListPlayer();
+
 		mediaPlayer.setMediaPlayer(headlessMediaPlayer);
 		mediaPlayer.setMode(MediaListPlayerMode.DEFAULT);
 
@@ -209,8 +211,7 @@ public class ServletManETS extends HttpServlet {
 					manageOpenRequest(response, parameterMap);
 				} catch (Exception e) {
 					e.printStackTrace();
-					response.getWriter().write(
-							HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 				}
 				break;
 			case ORDER:
@@ -220,7 +221,12 @@ public class ServletManETS extends HttpServlet {
 				managePauseRequest(response, parameterMap);
 				break;
 			case PLAYLIST:
-				managePlaylistRequest(response, parameterMap);
+				try {
+					managePlaylistRequest(response, parameterMap);
+				} catch (Exception e) {
+					e.printStackTrace();
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				}
 				break;
 			case PLAYPLAYLIST:
 				managePlayPlayListRequest(response, parameterMap);
@@ -322,6 +328,7 @@ public class ServletManETS extends HttpServlet {
 			Map<String, String[]> parameterMap) throws JsonProcessingException,
 			IOException {
 		serveurState.setCurrentPosition(headlessMediaPlayer.getPosition());
+
 		response.setStatus(HttpServletResponse.SC_OK);
 		response.getWriter().write(
 				new ObjectMapper().writeValueAsString(serveurState));
@@ -379,9 +386,18 @@ public class ServletManETS extends HttpServlet {
 
 	private void managePlaylistRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws JsonProcessingException,
-			IOException {
-		response.getWriter().write(
-				new ObjectMapper().writeValueAsString(playlists));
+			IOException, CannotReadException, TagException,
+			ReadOnlyFileException, InvalidAudioFrameException {
+
+		final MediaList mediaList = mediaPlayer.getMediaList();
+		if (mediaList != null) {
+
+			List<Media> list = new ArrayList<Media>();
+			list.add(createMedia(mediaList));
+			response.getWriter().write(
+					new ObjectMapper().writeValueAsString(list));
+		}
+
 	}
 
 	private void managePauseRequest(HttpServletResponse response,
@@ -407,13 +423,15 @@ public class ServletManETS extends HttpServlet {
 
 	private void manageOrderRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
-		playlists.randomise();
+		mediaPlayer.getMediaList().setStandardMediaOptions("--random");
 	}
 
 	private void manageClearRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) {
-		playlists.paths.clear();
+
+		mediaPlayer.getMediaList().clear();
 		response.setStatus(200);
+
 	}
 
 	private void manageOpenRequest(HttpServletResponse response,
@@ -430,53 +448,62 @@ public class ServletManETS extends HttpServlet {
 			path += parameterMap.get("path")[0];
 			System.out.println(">>Params : " + path);
 
-			// mediaPlayer.stop();
-			//
-			// playlists.paths.clear();
-			//
 			File file = new File(path);
 			MediaList list = mediaPlayerFactory.newMediaList();
 			if (file.isDirectory()) {
 				array = file.listFiles(musicFilter);
 				for (int i = 0; i < array.length; i++) {
-					// playlists.paths.add(array[i].getAbsolutePath());
 					list.addMedia(array[i].getAbsolutePath());
 				}
 			} else {
 				list.addMedia(file.getAbsolutePath());
 			}
+
+			mediaPlayer.stop();
 			mediaPlayer.setMediaList(list);
 			mediaPlayer.play();
 
-			final String realPath = list.items().get(0).mrl().substring(8)
-					.replaceAll("%20", " ");
-			AudioFile f = AudioFileIO.read(new File(realPath));
-			Tag tag = f.getTag();
-
-			Media media = new Media(tag, list.items().get(0).name(), f
-					.getAudioHeader().getTrackLength());
+			Media media = createMedia(list);
 
 			serveurState = new ServeurState(media, listIdPlay,
 					headlessMediaPlayer.getVolume(),
 					headlessMediaPlayer.getPosition());
+
+			response.setStatus(HttpServletResponse.SC_OK);
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(serveurState));
 		}
 
 		else {
-			response.getWriter()
-					.write(new ObjectMapper()
-							.writeValueAsString(HttpServletResponse.SC_BAD_REQUEST));
-
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 
+	}
+
+	private Media createMedia(MediaList list) throws CannotReadException,
+			IOException, TagException, ReadOnlyFileException,
+			InvalidAudioFrameException {
+
+		final String realPath = list.items().get(0).mrl().substring(8)
+				.replaceAll("%20", " ");
+
+		AudioFile f = AudioFileIO.read(new File(realPath));
+		Tag tag = f.getTag();
+
+		Media media = new Media(tag, realPath, f.getAudioHeader()
+				.getTrackLength());
+		return media;
 	}
 
 	private void manageAddRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws IOException {
 
 		if (parameterMap.containsKey("path")) {
-			playlists.paths.add(parameterMap.get("path")[0]);
+			// playlists.paths.add(parameterMap.get("path")[0]);
+
+			mediaPlayer.getMediaList().addMedia(
+					musicHome + parameterMap.get("path")[0]);
+
 			response.setStatus(200);
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(playlists));
@@ -507,6 +534,7 @@ public class ServletManETS extends HttpServlet {
 						+ array[i].getName(), array[i].getName()));
 			}
 
+			response.setStatus(200);
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(listRepertoire));
 		} else {
