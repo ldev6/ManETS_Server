@@ -24,7 +24,6 @@ import ca.etsmtl.gti785.model.DashBoardFeed.Settings;
 import ca.etsmtl.gti785.model.DataSource;
 import ca.etsmtl.gti785.model.Media;
 import ca.etsmtl.gti785.model.PlayList;
-import ca.etsmtl.gti785.model.PlayerState;
 import ca.etsmtl.gti785.model.RepertoireDefinition;
 import ca.etsmtl.gti785.model.ServeurState;
 
