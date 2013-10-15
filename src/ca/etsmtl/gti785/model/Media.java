@@ -13,16 +13,16 @@ public class Media {
     String media;
     String titre;
     String artist;
-    String duree;
+    Long duree;
     String album;
     String path;
     
 
-    public Media(MediaMeta mediaMeta, String path) {
+    public Media(MediaMeta mediaMeta, String path, Long duree) {
     	titre = mediaMeta.getTitle();
 		artist = mediaMeta.getArtist();
 		album = mediaMeta.getAlbum();
-		duree = 
+		this.duree = duree;
 		this.path = path;
 	}
 
@@ -50,11 +50,11 @@ public class Media {
         this.artist = artiste;
     }
 
-	public String getDuree() {
+	public Long getDuree() {
 		return duree;
 	}
 
-	public void setDuree(String duree) {
+	public void setDuree(Long duree) {
 		this.duree = duree;
 	}
 
