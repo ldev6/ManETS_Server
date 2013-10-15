@@ -49,8 +49,7 @@ public class ServeurState {
 	public float getCurrentPosition() {
 		return currentPosition;
 	}
-
-	public void setCurrentPosition(long currentPosition) {
+	public void setCurrentPosition(float currentPosition) {
 		this.currentPosition = currentPosition;
 	}
 

@@ -68,8 +68,10 @@ public class ServletManETS extends HttpServlet {
 
 		public boolean accept(File file) {
 			String path = file.getAbsolutePath().toLowerCase();
+			System.out.println("FileFilter path ="+path);
 			for (int i = 0, n = extensions.length; i < n; i++) {
 				String extension = extensions[i];
+				System.out.println("FileFilter Extension="+extension);
 				if ((path.endsWith(extension) && (path.charAt(path.length()
 						- extension.length() - 1)) == '.')) {
 					return true;
@@ -271,6 +273,7 @@ public class ServletManETS extends HttpServlet {
 				headlessMediaPlayer.setVolume(volume);
 				response.setStatus(HttpServletResponse.SC_OK);
 				serveurState.setVolume(volume);
+				serveurState.setCurrentPosition( headlessMediaPlayer.getPosition());
 				response.getWriter().write(
 						new ObjectMapper().writeValueAsString(serveurState));
 
@@ -312,12 +315,10 @@ public class ServletManETS extends HttpServlet {
 			IOException {
 		if (parameterMap.containsKey("value")) {
 			int seek = Integer.parseInt(parameterMap.get("value")[0]);
-			if (mediaPlayer.isPlaying()) {
-				headlessMediaPlayer.setPosition(seek);
-				response.setStatus(200);
-			} else {
-				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-			}
+			headlessMediaPlayer.setPosition(seek);
+			response.setStatus(200);
+			
+			//TODO fixe that shite
 		} else {
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
@@ -465,7 +466,6 @@ public class ServletManETS extends HttpServlet {
 		}
 
 		else {
-			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 		}
 
 	}
@@ -476,6 +476,8 @@ public class ServletManETS extends HttpServlet {
 		if (parameterMap.containsKey("path")) {
 			playlists.paths.add(parameterMap.get("path")[0]);
 			response.setStatus(200);
+			response.getWriter().write(
+					new ObjectMapper().writeValueAsString(playlists));
 		} else {
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
