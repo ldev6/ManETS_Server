@@ -7,8 +7,6 @@ import java.util.regex.Pattern;
  * @author http://software.danielwatrous.com/restful-java-servlet/
  */
 class RestRequest {
-	// Accommodate two requests, one for all resources, another for a specific
-	// resource
 	private Pattern listAllPattern = Pattern.compile("/list");
 
 	private Pattern listIdPattern = Pattern.compile("/list/*");
@@ -23,12 +21,11 @@ class RestRequest {
 
 	private Pattern nextPattern = Pattern.compile("/next");
 
-	//private Pattern volumePattern = Pattern.compile("/volume/([0-9]*)");
+	// private Pattern volumePattern = Pattern.compile("/volume/([0-9]*)");
 	private Pattern volumePattern = Pattern.compile("/volume");
 
-	//private Pattern seekPattern = Pattern.compile("/seek/([0-9]*)");
+	// private Pattern seekPattern = Pattern.compile("/seek/([0-9]*)");
 	private Pattern seekPattern = Pattern.compile("/seek");
-
 
 	private Pattern playlistPattern = Pattern.compile("/playlist");
 
@@ -99,14 +96,14 @@ class RestRequest {
 		matcher = volumePattern.matcher(pathInfo);
 		if (matcher.find()) {
 			c = Controller.VOLUME;
-			
-			System.out.println("VolumePatternMatcher id="+id+" c="+c);
+
+			System.out.println("VolumePatternMatcher id=" + id + " c=" + c);
 			return;
 		}
 
 		matcher = seekPattern.matcher(pathInfo);
 		if (matcher.find()) {
-			//id = Integer.parseInt(matcher.group(1));
+			// id = Integer.parseInt(matcher.group(1));
 			c = Controller.SEEK;
 			return;
 		}

@@ -3,8 +3,6 @@ package ca.etsmtl.gti785.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils.Collections;
-
 /**
  * Created by Phil on 24/09/13.
  */
@@ -18,7 +16,10 @@ public class PlayList extends Feed {
 	}
 
 	public String getNext() {
-		return paths.get(index);
+		if (paths.size() > 0) {
+			return paths.get(index);
+		} else
+			return null;
 	}
 
 	public void randomise() {
