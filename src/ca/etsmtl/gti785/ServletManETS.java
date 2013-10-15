@@ -178,8 +178,6 @@ public class ServletManETS extends HttpServlet {
 			final Map<String, String[]> parameterMap = request
 					.getParameterMap();
 
-			System.out.println(">>Params : " + parameterMap);
-
 			final RestRequest resourceValues = new RestRequest(servInfo);
 
 			switch (resourceValues.c) {
@@ -411,6 +409,7 @@ public class ServletManETS extends HttpServlet {
 		if (parameterMap.containsKey("path")) {
 
 			path += parameterMap.get("path")[0];
+			System.out.println(">>Params : " + path);
 
 			// mediaPlayer.stop();
 			//
