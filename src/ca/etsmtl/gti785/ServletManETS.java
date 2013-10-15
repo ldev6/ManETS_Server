@@ -396,6 +396,9 @@ public class ServletManETS extends HttpServlet {
 			list.add(createMedia(mediaList));
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(list));
+		}else{
+			response.getWriter().write(
+					new ObjectMapper().writeValueAsString(new ArrayList()));
 		}
 
 	}
