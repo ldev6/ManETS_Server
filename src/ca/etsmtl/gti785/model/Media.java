@@ -1,6 +1,7 @@
 package ca.etsmtl.gti785.model;
 
-import uk.co.caprica.vlcj.player.MediaMeta;
+import org.jaudiotagger.tag.FieldKey;
+import org.jaudiotagger.tag.Tag;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -10,28 +11,18 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Media {
 
-    String media;
-    String titre;
-    String artist;
-    Long duree;
-    String album;
-    String path;
-    
+	String titre;
+	String artist;
+	Long duree;
+	String album;
+	String path;
 
-    public Media(MediaMeta mediaMeta, String path) {
-    	titre = mediaMeta.getTitle();
-		artist = mediaMeta.getArtist();
-		album = mediaMeta.getAlbum();
-		this.duree = mediaMeta.getLength();
+	public Media(Tag tag, String path, int length) {
+		titre = tag.getFirst(FieldKey.TITLE);
+		artist = tag.getFirst(FieldKey.ARTIST);
+		album = tag.getFirst(FieldKey.ALBUM);
+		this.duree = (long) length;
 		this.path = path;
-	}
-
-	public String getMedia() {
-		return media;
-	}
-
-	public void setMedia(String media) {
-		this.media = media;
 	}
 
 	public String getTitre() {
@@ -42,13 +33,13 @@ public class Media {
 		this.titre = titre;
 	}
 
-    public String getArtist() {
-        return artist;
-    }
+	public String getArtist() {
+		return artist;
+	}
 
-    public void setArtiste(String artiste) {
-        this.artist = artiste;
-    }
+	public void setArtiste(String artiste) {
+		this.artist = artiste;
+	}
 
 	public Long getDuree() {
 		return duree;
