@@ -21,7 +21,7 @@ public class Media {
 		titre = tag.getFirst(FieldKey.TITLE);
 		artist = tag.getFirst(FieldKey.ARTIST);
 		album = tag.getFirst(FieldKey.ALBUM);
-		this.duree = (long) length;
+		this.duree = (long) length * 1000;
 		this.path = path;
 	}
 

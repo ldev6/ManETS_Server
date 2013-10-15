@@ -1,20 +1,23 @@
 package ca.etsmtl.gti785.model;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ServeurState {
+public class ServerState {
 
 	Media currentMedia = null;
-	int currentID = 0;
+	int currentID = -1;
 	boolean pause = false;
-	float currentPosition = 0;
+	float currentPosition = -1;
 	int volume = 0;
+	Map<Integer, Media> list;
 
-	public ServeurState() {
+	public ServerState() {
 	}
 
-	public ServeurState(Media media, int id, int volume, float currentPosition) {
+	public ServerState(Media media, int id, int volume, float currentPosition) {
 		currentMedia = media;
 		currentID = id;
 		pause = false;
@@ -49,6 +52,7 @@ public class ServeurState {
 	public float getCurrentPosition() {
 		return currentPosition;
 	}
+
 	public void setCurrentPosition(float currentPosition) {
 		this.currentPosition = currentPosition;
 	}
@@ -59,6 +63,10 @@ public class ServeurState {
 
 	public void setVolume(int volume) {
 		this.volume = volume;
+	}
+
+	public void setPlaylist(Map<Integer, Media> list) {
+		this.list = list;
 	}
 
 }
