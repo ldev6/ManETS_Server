@@ -489,8 +489,8 @@ public class ServletManETS extends HttpServlet {
 			InvalidAudioFrameException {
 
 		final String realPath = item.mrl().substring(8).replaceAll("%20", " ");
-
-		AudioFile f = AudioFileIO.read(new File(musicHome));
+		
+		AudioFile f = AudioFileIO.read(new File(realPath));
 		Tag tag = f.getTag();
 
 		Media media = new Media(tag, realPath, f.getAudioHeader()
