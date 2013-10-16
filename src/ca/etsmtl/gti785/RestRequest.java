@@ -96,8 +96,6 @@ class RestRequest {
 		matcher = volumePattern.matcher(pathInfo);
 		if (matcher.find()) {
 			c = Controller.VOLUME;
-
-			System.out.println("VolumePatternMatcher id=" + id + " c=" + c);
 			return;
 		}
 
@@ -107,6 +105,12 @@ class RestRequest {
 			c = Controller.SEEK;
 			return;
 		}
+		
+		matcher = playlistPlayPattern.matcher(pathInfo);
+		if (matcher.find()) {
+			c = Controller.PLAYPLAYLIST;
+			return;
+		}
 
 		matcher = playlistPattern.matcher(pathInfo);
 		if (matcher.find()) {
@@ -114,11 +118,7 @@ class RestRequest {
 			return;
 		}
 
-		matcher = playlistPlayPattern.matcher(pathInfo);
-		if (matcher.find()) {
-			c = Controller.PLAYPLAYLIST;
-			return;
-		}
+	
 
 		matcher = previousPattern.matcher(pathInfo);
 		if (matcher.find()) {
