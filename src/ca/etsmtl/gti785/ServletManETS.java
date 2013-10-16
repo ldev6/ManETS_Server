@@ -379,24 +379,51 @@ public class ServletManETS extends HttpServlet {
 				new ObjectMapper().writeValueAsString(serveurState));
 	}
 
+	//NOT SURE IT'S WHAT WE WANT
 	private void manageSeekRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws JsonProcessingException,
 			IOException {
-		if (parameterMap.containsKey("value")) {
-			int seek = Integer.parseInt(parameterMap.get("value")[0]);
-			headlessMediaPlayer.setPosition(seek);
-			response.setStatus(200);
-
-			// TODO fixe that shite
-		} else {
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+		if(headlessMediaPlayer.isPlaying()){
+			if (parameterMap.containsKey("value")) {
+				
+				float position = headlessMediaPlayer.getPosition();
+				float positionSeek = position + 0.02f;
+				if(positionSeek<1){
+					headlessMediaPlayer.setPosition(positionSeek);
+					response.setStatus(200);
+				}else{
+					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+					response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+				}
+		
+			} else {
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+			}
+		}else{
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
 	}
 
 	private void manageRemoveRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		// TODO Auto-generated method stub
-		mediaPlayer.getMediaList().removeMedia(0);
+			Map<String, String[]> parameterMap) throws IOException {
+	
+		if(mediaPlayer.getMediaList()!=null){
+			if(parameterMap.containsKey("id")){
+				int id  = Integer.parseInt(parameterMap.get("id")[0]);
+				if( id>=0 && id<mediaPlayer.getMediaList().size()){
+					mediaPlayer.getMediaList().removeMedia(id);
+					response.setStatus(HttpServletResponse.SC_OK);
+					//TODO return playListDenition
+				}			
+			}else{
+				response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+			}
+		}else{
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+		}
+		
 	}
 
 	private void managePreviousRequest(HttpServletResponse response,
@@ -626,22 +653,7 @@ public class ServletManETS extends HttpServlet {
 		// list all file from directory with file filtering
 		array = new File(path).listFiles(fileFilter);
 		if (array != null) {
-
-			List<RepertoireDefinition> listRepertoire = new ArrayList<RepertoireDefinition>();
-			List<Media> listMedia = new ArrayList<Media>();
-			for (int i = 0; i < array.length; i++) {
-
-				if (array[i].isDirectory()) {
-
-					listRepertoire.add(new RepertoireDefinition(path
-							.substring(musicHome.length())
-							+ "\\"
-							+ array[i].getName(), array[i].getName()));
-				} else {
-					listMedia.add(createMedia(array[i]));
-				}
-			}
-			ListReponse r = new ListReponse(listRepertoire, listMedia);
+			ListReponse r =createListReponse(array,path );
 
 			response.setStatus(200);
 			response.getWriter()
@@ -666,6 +678,28 @@ public class ServletManETS extends HttpServlet {
 		return media;
 	}
 	
+	private ListReponse createListReponse(File[] array, String path) throws CannotReadException, IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException{
+		List<RepertoireDefinition> listRepertoire = new ArrayList<RepertoireDefinition>();
+		List<Media> listMedia = new ArrayList<Media>();
+		for (int i = 0; i < array.length; i++) {
+
+			if (array[i].isDirectory()) {
+
+				listRepertoire.add(new RepertoireDefinition(path
+						.substring(musicHome.length())
+						+ "\\"
+						+ array[i].getName(), array[i].getName()));
+			} else {
+				listMedia.add(createMedia(array[i]));
+			}
+		}
+		ListReponse r = new ListReponse(listRepertoire, listMedia);
+		return r;
+	}
+	
+	
+	
+
 
 
 	/**
