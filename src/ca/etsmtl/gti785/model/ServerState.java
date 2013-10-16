@@ -68,5 +68,9 @@ public class ServerState {
 	public void setPlaylist(Map<Integer, Media> list) {
 		this.list = list;
 	}
+	
+	public Map<Integer, Media> getPlaylist() {
+		return this.list ;
+	}
 
 }

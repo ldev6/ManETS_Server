@@ -210,7 +210,12 @@ public class ServletManETS extends HttpServlet {
 				}
 				break;
 			case NEXT:
-				manageNextRequest(response, parameterMap);
+				try {
+					manageNextRequest(response, parameterMap);
+				} catch (Exception e) {
+					e.printStackTrace();
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				}
 				break;
 			case OPEN:
 				try {
@@ -238,7 +243,12 @@ public class ServletManETS extends HttpServlet {
 				managePlayPlayListRequest(response, parameterMap);
 				break;
 			case PREVIOUS:
-				managePreviousRequest(response, parameterMap);
+				try {
+					managePreviousRequest(response, parameterMap);
+				} catch (Exception e) {
+					e.printStackTrace();
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				}
 				break;
 			case REMOVE:
 				manageRemoveRequest(response, parameterMap);
@@ -273,9 +283,24 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void manageNextRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) throws IOException {
+			Map<String, String[]> parameterMap) throws IOException, CannotReadException, TagException, ReadOnlyFileException, InvalidAudioFrameException {
 
-		mediaPlayer.playNext();
+		
+		if(listIdPlay<mediaPlayer.getMediaList().size()-1){
+			listIdPlay++;
+			mediaPlayer.playNext();
+			MediaList mediaList = mediaPlayer.getMediaList();
+			Media media = createMedia(mediaList.items().get(listIdPlay));
+			serveurState = new ServerState(media, listIdPlay,
+					headlessMediaPlayer.getVolume(),
+					headlessMediaPlayer.getPosition());
+			response.setStatus(HttpServletResponse.SC_OK);
+			response.getWriter().write(
+					new ObjectMapper().writeValueAsString(serveurState));
+		}else{
+			response.setStatus(HttpServletResponse.SC_NOT_FOUND );
+			response.sendError(HttpServletResponse.SC_NOT_FOUND );
+		}
 	}
 
 	private void manageVolumeRequest(HttpServletResponse response,
@@ -368,8 +393,27 @@ public class ServletManETS extends HttpServlet {
 
 	private void managePreviousRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws JsonProcessingException,
-			IOException {
-		mediaPlayer.playPrevious();
+			IOException, CannotReadException, TagException, ReadOnlyFileException, InvalidAudioFrameException {
+
+		if(listIdPlay>0){
+			System.out.println("previous listIdPlay="+listIdPlay);
+			listIdPlay--;
+			mediaPlayer.playPrevious();
+	
+			MediaList mediaList = mediaPlayer.getMediaList();
+			Media media = createMedia(mediaList.items().get(listIdPlay));
+			serveurState = new ServerState(media, listIdPlay,
+					headlessMediaPlayer.getVolume(),
+					headlessMediaPlayer.getPosition());
+			response.setStatus(HttpServletResponse.SC_OK);
+			response.getWriter().write(
+					new ObjectMapper().writeValueAsString(serveurState));
+		}else{
+			response.setStatus(HttpServletResponse.SC_NOT_FOUND );
+			response.sendError(HttpServletResponse.SC_NOT_FOUND );
+		}
+		
+		
 	}
 
 	private void managePlayPlayListRequest(HttpServletResponse response,
@@ -479,6 +523,7 @@ public class ServletManETS extends HttpServlet {
 		}
 
 		else {
+			// code 400
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 
@@ -487,10 +532,12 @@ public class ServletManETS extends HttpServlet {
 	private Media createMedia(MediaListItem item) throws CannotReadException,
 			IOException, TagException, ReadOnlyFileException,
 			InvalidAudioFrameException {
-
-		final String realPath = item.mrl().substring(8).replaceAll("%20", " ");
-
-		AudioFile f = AudioFileIO.read(new File(musicHome));
+		
+		String realPath = item.mrl().substring(8).replaceAll("%20", " ");
+		realPath = realPath.replaceAll("%27", "'");
+		realPath = realPath.replaceAll("%28", "(");
+		realPath = realPath.replaceAll("%29", ")");
+		AudioFile f = AudioFileIO.read(new File(realPath));
 		Tag tag = f.getTag();
 
 		Media media = new Media(tag, realPath, f.getAudioHeader()
