@@ -240,7 +240,12 @@ public class ServletManETS extends HttpServlet {
 				}
 				break;
 			case PLAYPLAYLIST:
-				managePlayPlayListRequest(response, parameterMap);
+				try {
+					managePlayPlayListRequest(response, parameterMap);
+				} catch (Exception e) {
+					e.printStackTrace();
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				}
 				break;
 			case PREVIOUS:
 				try {
@@ -348,13 +353,14 @@ public class ServletManETS extends HttpServlet {
 			Map<String, String[]> parameterMap) throws JsonProcessingException,
 			IOException, CannotReadException, TagException,
 			ReadOnlyFileException, InvalidAudioFrameException {
+		
 		serveurState.setCurrentPosition(headlessMediaPlayer.getPosition()
 				* headlessMediaPlayer.getLength());
 		serveurState.setVolume(headlessMediaPlayer.getVolume());
 
 		final MediaList mediaList = mediaPlayer.getMediaList();
 		if (mediaList != null) {
-
+			serveurState.setCurrentID(listIdPlay);
 			final Map<Integer, Media> list = new TreeMap<Integer, Media>();
 
 			int i = 0;
@@ -362,8 +368,10 @@ public class ServletManETS extends HttpServlet {
 				list.put(i++, createMedia(m));
 			}
 			serveurState.setPlaylist(list);
+			Media media = createMedia(mediaList.items().get(listIdPlay));
+			serveurState.setCurrentMedia(media);
 		} else {
-
+		
 		}
 
 		response.setStatus(HttpServletResponse.SC_OK);
@@ -417,11 +425,53 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void managePlayPlayListRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		if (parameterMap.containsKey("id")) {
-			String string = parameterMap.get("id")[0];
+			Map<String, String[]> parameterMap) throws IOException, CannotReadException, TagException, ReadOnlyFileException, InvalidAudioFrameException {
+		int mediaToPlay=-1;
+		
+		mediaPlayer.stop();
+		MediaList mediaList = mediaPlayer.getMediaList();
+		if(mediaList!=null){
+			
+			if (parameterMap.containsKey("id")) {
+				mediaToPlay = Integer.parseInt(parameterMap.get("id")[0]);
+			}
+			if(mediaToPlay!=-1){
+				if(mediaToPlay<mediaList.size()){
+					listIdPlay = mediaToPlay;
+					mediaPlayer.playItem(listIdPlay);
+				}else{
+					response.setStatus(HttpServletResponse.SC_NOT_FOUND );
+					response.sendError(HttpServletResponse.SC_NOT_FOUND );
+				}
+			}else{
+				listIdPlay = 0;
+				mediaPlayer.playItem(listIdPlay);
+			}
+			final Map<Integer, Media> list = new TreeMap<Integer, Media>();
+			int i = 0;
+			for (MediaListItem m : mediaList.items()) {
+				list.put(i++, createMedia(m));
+			}
 
+			response.setStatus(HttpServletResponse.SC_OK);
+			response.getWriter().write(
+					new ObjectMapper().writeValueAsString(list));
+			
+			Media media = createMedia(mediaList.items().get(listIdPlay));
+			serveurState = new ServerState(media, listIdPlay,
+					headlessMediaPlayer.getVolume(),
+					headlessMediaPlayer.getPosition());
+			response.getWriter().write(
+					new ObjectMapper().writeValueAsString(serveurState));
+			
+		}else{
+			response.setStatus(HttpServletResponse.SC_NOT_FOUND );
+			response.sendError(HttpServletResponse.SC_NOT_FOUND );
 		}
+		
+		
+		
+		
 	}
 
 	private void managePlaylistRequest(HttpServletResponse response,
@@ -615,6 +665,8 @@ public class ServletManETS extends HttpServlet {
 
 		return media;
 	}
+	
+
 
 	/**
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
