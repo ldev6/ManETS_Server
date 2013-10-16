@@ -380,15 +380,16 @@ public class ServletManETS extends HttpServlet {
 				new ObjectMapper().writeValueAsString(serveurState));
 	}
 
-	// NOT SURE IT'S WHAT WE WANT
+	//Time position in second
 	private void manageSeekRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws JsonProcessingException,
 			IOException {
-		if (parameterMap.containsKey("value")) {
-
-			if (headlessMediaPlayer.isPlaying()) {
-				float position = headlessMediaPlayer.getPosition();
-				float positionSeek = position + 0.02f;
+		if(headlessMediaPlayer.isPlaying()){
+			if (parameterMap.containsKey("value")) {			
+				int positionTime = Integer.parseInt(parameterMap.get("value")[0]);
+				long duration = headlessMediaPlayer.getLength();
+				float positionSeek  = (float)((positionTime*1.0)/(duration/1000));
+				
 				if (positionSeek < 1) {
 					headlessMediaPlayer.setPosition(positionSeek);
 					response.setStatus(200);
@@ -589,10 +590,11 @@ public class ServletManETS extends HttpServlet {
 			mediaPlayer.play();
 
 			Media media = createMedia(list.items().get(0));
-
+					
 			serveurState = new ServerState(media, listIdPlay,
 					headlessMediaPlayer.getVolume(),
 					headlessMediaPlayer.getPosition());
+			
 
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.getWriter().write(
@@ -698,6 +700,8 @@ public class ServletManETS extends HttpServlet {
 		ListReponse r = new ListReponse(listRepertoire, listMedia);
 		return r;
 	}
+	
+	
 
 	/**
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
