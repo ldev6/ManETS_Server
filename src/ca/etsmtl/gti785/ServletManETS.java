@@ -126,7 +126,7 @@ public class ServletManETS extends HttpServlet {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		ip= IP.getHostAddress()+ ":8080";
+		ip= IP.getHostAddress()+ ":8081";
 		hostAddress = "http://" + IP.getHostAddress();
 		hostAddress += ":8080/";
 		System.out.println("Adress of my system is : " + hostAddress);
@@ -845,12 +845,13 @@ public class ServletManETS extends HttpServlet {
 	 */
 	private void stream(String path) {
 		System.out.println("FUCKYOUSTREAM: path ="+path+" ip="+ip);
-		String param =	":sout=#transcode{acodec=mpga}" + ":duplicate{dst=std{access=http,mux=ts,dst="+ip+"}}";
-//		String pathElse = musicHome+"Frostythesnowman.mp3";
+		String param =	":sout=#transcode{acodec=mpga}:duplicate{dst=std{access=http,mux=ts,dst="+ip+"}}";
 		boolean  streamBool =  headlessMediaPlayer.playMedia(path,param);
 		System.out.println("FUCKYOUSTREAM2 bool ="+streamBool);
 	
 	}
+	
+	
 
 	private Map<Integer, Media> getPlayListDef(MediaList mediaList)
 			throws CannotReadException, IOException, TagException,
