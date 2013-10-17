@@ -52,11 +52,17 @@ import com.sun.jna.NativeLibrary;
 public class ServletManETS extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private static String hostAddress;
+	private static String ip;
 	private static String userHome;
 	private static String musicHome;
 	private static final String extensions[] = new String[] { "mp3", "flac",
 			"mp4" };
-
+	
+	
+	
+	/**
+	 * FileFilter costum to get the folder and the file
+	 */
 	private static final FileFilter fileFilter = new FileFilter() {
 		public boolean accept(File file) {
 			if (file.isDirectory()) {
@@ -75,6 +81,9 @@ public class ServletManETS extends HttpServlet {
 		}
 	};
 
+	/**
+	 * FileFilter costum to get only the file
+	 */
 	private static final FileFilter musicFilter = new FileFilter() {
 
 		public boolean accept(File file) {
@@ -117,7 +126,7 @@ public class ServletManETS extends HttpServlet {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-
+		ip= IP.getHostAddress()+ ":8080";
 		hostAddress = "http://" + IP.getHostAddress();
 		hostAddress += ":8080/";
 		System.out.println("Adress of my system is : " + hostAddress);
@@ -131,6 +140,7 @@ public class ServletManETS extends HttpServlet {
 	private MediaListPlayer mediaPlayer;
 	private HeadlessMediaPlayer headlessMediaPlayer;
 	private MediaPlayerFactory mediaPlayerFactory;
+	
 
 	/**
 	 * @see HttpServlet#HttpServlet()
@@ -661,61 +671,59 @@ public class ServletManETS extends HttpServlet {
 		if (parameterMap.containsKey("path")) {
 
 			path += parameterMap.get("path")[0];
+		}
 			System.out.println(">>Params : " + path);
-
-			File file = new File(path);
-			MediaList list = mediaPlayerFactory.newMediaList();
-			if (file.isDirectory()) {
-				array = file.listFiles(musicFilter);
-				for (int i = 0; i < array.length; i++) {
-					list.addMedia(array[i].getAbsolutePath());
+			
+			try{
+				File file = new File(path);
+				MediaList list = mediaPlayerFactory.newMediaList();
+				if (file.isDirectory()) {
+					array = file.listFiles(musicFilter);
+					for (int i = 0; i < array.length; i++) {
+						list.addMedia(array[i].getAbsolutePath());
+					}
+				} else {
+					list.addMedia(file.getAbsolutePath());
 				}
-			} else {
-				list.addMedia(file.getAbsolutePath());
+				
+				mediaPlayer.stop();
+				mediaPlayer.setMediaList(list);
+				if(isParameterStreaming(parameterMap)){
+					System.out.println("before streaming");
+					stream(list.items().get(0).mrl());
+				}else{
+					mediaPlayer.play();
+				}
+
+				Media media = createMedia(list.items().get(0));
+
+				final Map<Integer, Media> listToServer = new TreeMap<Integer, Media>();
+				int i = 0;
+				for (MediaListItem m : mediaPlayer.getMediaList().items()) {
+					listToServer.put(i++, createMedia(m));
+				}
+
+				serveurState = new ServerState(media, listIdPlay,
+						headlessMediaPlayer.getVolume(),
+						headlessMediaPlayer.getPosition());
+
+				serveurState.setPlaylist(listToServer);
+				response.setStatus(HttpServletResponse.SC_OK);
+				response.getWriter().write(
+						new ObjectMapper().writeValueAsString(serveurState));
+
+			}catch(NullPointerException e){
+				// code 400
+				response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 			}
-
-			mediaPlayer.stop();
-			mediaPlayer.setMediaList(list);
-			mediaPlayer.play();
-
-			Media media = createMedia(list.items().get(0));
-
-			final Map<Integer, Media> listToServer = new TreeMap<Integer, Media>();
-			int i = 0;
-			for (MediaListItem m : mediaPlayer.getMediaList().items()) {
-				listToServer.put(i++, createMedia(m));
-			}
-
-			serveurState = new ServerState(media, listIdPlay,
-					headlessMediaPlayer.getVolume(),
-					headlessMediaPlayer.getPosition());
-
-			serveurState.setPlaylist(listToServer);
-			response.setStatus(HttpServletResponse.SC_OK);
-			response.getWriter().write(
-					new ObjectMapper().writeValueAsString(serveurState));
-		}
-
-		else {
-			// code 400
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-		}
-
+			
 	}
 
 	private Media createMedia(MediaListItem item) throws CannotReadException,
 			IOException, TagException, ReadOnlyFileException,
 			InvalidAudioFrameException {
 		
-		String realPath = item.mrl().substring(8).replaceAll("%20", " ");
-		realPath = realPath.replaceAll("%27", "'");
-		realPath = realPath.replaceAll("%28", "(");
-		realPath = realPath.replaceAll("%29", ")");
-		realPath = realPath.replaceAll("%E8", "è");
-		realPath = realPath.replaceAll("%EF", "ï");
-		realPath = realPath.replaceAll("%26", "&");
-		realPath = realPath.replaceAll("%5B", "[");
-		realPath = realPath.replaceAll("%5D", "]");
+		String realPath = returnStringOK(item.mrl());
 
 		AudioFile f = AudioFileIO.read(new File(realPath));
 		Tag tag = f.getTag();
@@ -743,6 +751,19 @@ public class ServletManETS extends HttpServlet {
 		} else {
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
+	}
+	
+	private String returnStringOK(String path ){
+		String realPath = path.substring(8).replaceAll("%20", " ");
+		realPath = realPath.replaceAll("%27", "'");
+		realPath = realPath.replaceAll("%28", "(");
+		realPath = realPath.replaceAll("%29", ")");
+		realPath = realPath.replaceAll("%E8", "è");
+		realPath = realPath.replaceAll("%EF", "ï");
+		realPath = realPath.replaceAll("%26", "&");
+		realPath = realPath.replaceAll("%5B", "[");
+		realPath = realPath.replaceAll("%5D", "]");
+		return realPath;
 	}
 
 	private void manageListRequest(HttpServletResponse response,
@@ -804,10 +825,31 @@ public class ServletManETS extends HttpServlet {
 		return r;
 	}
 	
+	private boolean isParameterStreaming( Map<String, String[]>  param){
+		boolean isStreaming = false;
+		if(param.containsKey("streaming")){
+			String value = param.get("streaming")[0];
+			if(value.equals("true")){
+				isStreaming = true;
+			}else{
+				isStreaming = false;
+			}
+		}
+		return isStreaming;
+	}
+	
+	/**
+	 * PlayStream
+	 * stream 
+	 * @param path
+	 */
 	private void stream(String path) {
-	  headlessMediaPlayer.playMedia(path,
-	  ":sout=#transcode{acodec=FORMAT}" +
-	  ":duplicate{dst=std{access=http,mux=mpga,dst=192.168.0.194}}");
+		System.out.println("FUCKYOUSTREAM: path ="+path+" ip="+ip);
+		String param =	":sout=#transcode{acodec=mpga}" + ":duplicate{dst=std{access=http,mux=ts,dst="+ip+"}}";
+//		String pathElse = musicHome+"Frostythesnowman.mp3";
+		boolean  streamBool =  headlessMediaPlayer.playMedia(path,param);
+		System.out.println("FUCKYOUSTREAM2 bool ="+streamBool);
+	
 	}
 
 	private Map<Integer, Media> getPlayListDef(MediaList mediaList)
