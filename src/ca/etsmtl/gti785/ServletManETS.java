@@ -119,7 +119,7 @@ public class ServletManETS extends HttpServlet {
 		}
 
 		hostAddress = "http://" + IP.getHostAddress();
-		hostAddress += ":8080/ManETS_Server/#";
+		hostAddress += ":8080/";
 		System.out.println("Adress of my system is : " + hostAddress);
 		System.out.println("============================");
 	}
