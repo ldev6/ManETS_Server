@@ -58,7 +58,6 @@ public class ServletManETS extends HttpServlet {
 			"mp4" };
 
 	private static final FileFilter fileFilter = new FileFilter() {
-
 		public boolean accept(File file) {
 			if (file.isDirectory()) {
 				return true;
@@ -803,6 +802,12 @@ public class ServletManETS extends HttpServlet {
 		}
 		ListReponse r = new ListReponse(listRepertoire, listMedia);
 		return r;
+	}
+	
+	private void stream(String path) {
+	  headlessMediaPlayer.playMedia(path,
+	  ":sout=#transcode{acodec=FORMAT}" +
+	  ":duplicate{dst=std{access=http,mux=mpga,dst=192.168.0.194}}");
 	}
 
 	private Map<Integer, Media> getPlayListDef(MediaList mediaList)
