@@ -56,9 +56,7 @@ public class ServletManETS extends HttpServlet {
 	private static String musicHome;
 	private static final String extensions[] = new String[] { "mp3", "flac",
 			"mp4" };
-	
-	
-	
+
 	/**
 	 * FileFilter costum to get the folder and the file
 	 */
@@ -125,7 +123,7 @@ public class ServletManETS extends HttpServlet {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		ip= IP.getHostAddress()+ ":8081";
+		ip = IP.getHostAddress() + ":8081";
 		hostAddress = "http://" + IP.getHostAddress();
 		hostAddress += ":8080/";
 		System.out.println("Adress of my system is : " + hostAddress);
@@ -139,7 +137,6 @@ public class ServletManETS extends HttpServlet {
 	private MediaListPlayer mediaPlayer;
 	private HeadlessMediaPlayer headlessMediaPlayer;
 	private MediaPlayerFactory mediaPlayerFactory;
-	
 
 	/**
 	 * @see HttpServlet#HttpServlet()
@@ -372,8 +369,11 @@ public class ServletManETS extends HttpServlet {
 		if (headlessMediaPlayer.canPause()) {
 			mediaPlayer.stop();
 			response.setStatus(HttpServletResponse.SC_OK);
+			
 			serveurState.setCurrentMedia(null);
 			serveurState.setCurrentPosition(0);
+			serveurState.setPause(headlessMediaPlayer.isPlaying());
+			
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(serveurState));
 		} else {
@@ -389,10 +389,15 @@ public class ServletManETS extends HttpServlet {
 
 		serveurState.setCurrentPosition(headlessMediaPlayer.getPosition()
 				* headlessMediaPlayer.getLength());
+		
 		serveurState.setVolume(headlessMediaPlayer.getVolume());
-
+		
+		serveurState.setPause(mediaPlayer.isPlaying());
+		
 		final MediaList mediaList = mediaPlayer.getMediaList();
+		
 		if (mediaList != null && mediaList.items().size() > 0) {
+		
 			serveurState.setCurrentID(listIdPlay);
 			final Map<Integer, Media> list = new TreeMap<Integer, Media>();
 
@@ -400,12 +405,13 @@ public class ServletManETS extends HttpServlet {
 			for (MediaListItem m : mediaList.items()) {
 				list.put(i++, createMedia(m));
 			}
+			
 			serveurState.setPlaylist(list);
+			
 			Media media = createMedia(mediaList.items().get(listIdPlay));
+			
 			serveurState.setCurrentMedia(media);
-		} else {
-
-		}
+		} 
 
 		response.setStatus(HttpServletResponse.SC_OK);
 		response.getWriter().write(
@@ -680,51 +686,51 @@ public class ServletManETS extends HttpServlet {
 
 			path += parameterMap.get("path")[0];
 		}
-			System.out.println(">>Params : " + path);
-			
-			try{
-				File file = new File(path);
-				MediaList list = mediaPlayerFactory.newMediaList();
-				if (file.isDirectory()) {
-					array = file.listFiles(musicFilter);
-					for (int i = 0; i < array.length; i++) {
-						list.addMedia(array[i].getAbsolutePath());
-					}
-				} else {
-					list.addMedia(file.getAbsolutePath());
+		System.out.println(">>Params : " + path);
+
+		try {
+			File file = new File(path);
+			MediaList list = mediaPlayerFactory.newMediaList();
+			if (file.isDirectory()) {
+				array = file.listFiles(musicFilter);
+				for (int i = 0; i < array.length; i++) {
+					list.addMedia(array[i].getAbsolutePath());
 				}
-				
-				mediaPlayer.stop();
-				mediaPlayer.setMediaList(list);
-				if(isParameterStreaming(parameterMap)){
-					System.out.println("before streaming");
-					stream(list.items().get(0).mrl());
-				}else{
-					mediaPlayer.play();
-				}
-
-				Media media = createMedia(list.items().get(0));
-
-				final Map<Integer, Media> listToServer = new TreeMap<Integer, Media>();
-				int i = 0;
-				for (MediaListItem m : mediaPlayer.getMediaList().items()) {
-					listToServer.put(i++, createMedia(m));
-				}
-
-				serveurState = new ServerState(media, listIdPlay,
-						headlessMediaPlayer.getVolume(),
-						headlessMediaPlayer.getPosition());
-
-				serveurState.setPlaylist(listToServer);
-				response.setStatus(HttpServletResponse.SC_OK);
-				response.getWriter().write(
-						new ObjectMapper().writeValueAsString(serveurState));
-
-			}catch(NullPointerException e){
-				// code 400
-				response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+			} else {
+				list.addMedia(file.getAbsolutePath());
 			}
-			
+
+			mediaPlayer.stop();
+			mediaPlayer.setMediaList(list);
+			if (isParameterStreaming(parameterMap)) {
+				System.out.println("before streaming");
+				stream(list.items().get(0).mrl());
+			} else {
+				mediaPlayer.play();
+			}
+
+			Media media = createMedia(list.items().get(0));
+
+			final Map<Integer, Media> listToServer = new TreeMap<Integer, Media>();
+			int i = 0;
+			for (MediaListItem m : mediaPlayer.getMediaList().items()) {
+				listToServer.put(i++, createMedia(m));
+			}
+
+			serveurState = new ServerState(media, listIdPlay,
+					headlessMediaPlayer.getVolume(),
+					headlessMediaPlayer.getPosition());
+
+			serveurState.setPlaylist(listToServer);
+			response.setStatus(HttpServletResponse.SC_OK);
+			response.getWriter().write(
+					new ObjectMapper().writeValueAsString(serveurState));
+
+		} catch (NullPointerException e) {
+			// code 400
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+		}
+
 	}
 
 	private void manageImageRequest(HttpServletResponse response,
@@ -738,12 +744,17 @@ public class ServletManETS extends HttpServlet {
 
 		String realPath = returnStringOK(item.mrl());
 
-		AudioFile f = AudioFileIO.read(new File(realPath));
-		Tag tag = f.getTag();
+		if (realPath != null) {
 
-		Media media = new Media(tag, realPath, f.getAudioHeader()
-				.getTrackLength());
-		return media;
+			AudioFile f = AudioFileIO.read(new File(realPath));
+			Tag tag = f.getTag();
+
+			Media media = new Media(tag, realPath, f.getAudioHeader()
+					.getTrackLength());
+
+			return media;
+		}
+		return new Media();
 	}
 
 	private void manageAddRequest(HttpServletResponse response,
@@ -766,10 +777,13 @@ public class ServletManETS extends HttpServlet {
 						}
 					} else {
 
-						mediaPlayer.getMediaList().addMedia(
-								f.getAbsolutePath());
+						mediaPlayer.getMediaList()
+								.addMedia(f.getAbsolutePath());
 					}
 				}
+			} else {
+
+				mediaPlayer.getMediaList().addMedia(file.getAbsolutePath());
 			}
 
 			response.setStatus(200);
@@ -781,8 +795,8 @@ public class ServletManETS extends HttpServlet {
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 	}
-	
-	private String returnStringOK(String path ){
+
+	private String returnStringOK(String path) {
 		String realPath = path.substring(8).replaceAll("%20", " ");
 		realPath = realPath.replaceAll("%27", "'");
 		realPath = realPath.replaceAll("%28", "(");
@@ -792,6 +806,7 @@ public class ServletManETS extends HttpServlet {
 		realPath = realPath.replaceAll("%26", "&");
 		realPath = realPath.replaceAll("%5B", "[");
 		realPath = realPath.replaceAll("%5D", "]");
+
 		return realPath;
 	}
 
@@ -855,34 +870,33 @@ public class ServletManETS extends HttpServlet {
 		ListReponse r = new ListReponse(listRepertoire, listMedia);
 		return r;
 	}
-	
-	private boolean isParameterStreaming( Map<String, String[]>  param){
+
+	private boolean isParameterStreaming(Map<String, String[]> param) {
 		boolean isStreaming = false;
-		if(param.containsKey("streaming")){
+		if (param.containsKey("streaming")) {
 			String value = param.get("streaming")[0];
-			if(value.equals("true")){
+			if (value.equals("true")) {
 				isStreaming = true;
-			}else{
+			} else {
 				isStreaming = false;
 			}
 		}
 		return isStreaming;
 	}
-	
+
 	/**
-	 * PlayStream
-	 * stream 
+	 * PlayStream stream
+	 * 
 	 * @param path
 	 */
 	private void stream(String path) {
-		System.out.println("FUCKYOUSTREAM: path ="+path+" ip="+ip);
-		String param =	":sout=#transcode{acodec=mpga}:duplicate{dst=std{access=http,mux=ts,dst="+ip+"}}";
-		boolean  streamBool =  headlessMediaPlayer.playMedia(path,param);
-		System.out.println("FUCKYOUSTREAM2 bool ="+streamBool);
-	
+		System.out.println("FUCKYOUSTREAM: path =" + path + " ip=" + ip);
+		String param = ":sout=#transcode{acodec=mpga}:duplicate{dst=std{access=http,mux=ts,dst="
+				+ ip + "}}";
+		boolean streamBool = headlessMediaPlayer.playMedia(path, param);
+		System.out.println("FUCKYOUSTREAM2 bool =" + streamBool);
+
 	}
-	
-	
 
 	private Map<Integer, Media> getPlayListDef(MediaList mediaList)
 			throws CannotReadException, IOException, TagException,
