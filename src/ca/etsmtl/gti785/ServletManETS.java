@@ -419,7 +419,7 @@ public class ServletManETS extends HttpServlet {
 					response.setStatus(200);
 					serveurState.setCurrentPosition(positionSeek);
 					response.getWriter().write(new ObjectMapper().writeValueAsString(serveurState));
-				}else{
+				
 				} else {
 					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 					response.sendError(HttpServletResponse.SC_BAD_REQUEST);
@@ -447,9 +447,7 @@ public class ServletManETS extends HttpServlet {
 					
 					response.getWriter().write(new ObjectMapper().writeValueAsString(getPlayListDef(mediaPlayer.getMediaList())));
 				}			
-			}else{
-					// TODO return playListDenition
-				}
+
 			} else {
 				response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 			}
