@@ -320,13 +320,18 @@ public class ServletManETS extends HttpServlet {
 
 		if (listIdPlay < mediaPlayer.getMediaList().size() - 1) {
 			listIdPlay++;
-			mediaPlayer.playNext();
 			MediaList mediaList = mediaPlayer.getMediaList();
-			Media media = createMedia(mediaList.items().get(listIdPlay));
+			Media media = null;
+			if(isParameterStreaming(parameterMap)){
+				stream(mediaList.items().get(listIdPlay).mrl());
+			}else{
+				mediaPlayer.playNext();				
+			}	
+			media = createMedia(mediaList.items().get(listIdPlay));
 			serveurState = new ServerState(media, listIdPlay,
 					headlessMediaPlayer.getVolume(),
 					headlessMediaPlayer.getPosition());
-
+			
 			serveurState.setPlaylist(getPlayListDef(mediaList));
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.getWriter().write(
@@ -485,9 +490,15 @@ public class ServletManETS extends HttpServlet {
 		if (listIdPlay > 0) {
 			System.out.println("previous listIdPlay=" + listIdPlay);
 			listIdPlay--;
-			mediaPlayer.playPrevious();
 
 			MediaList mediaList = mediaPlayer.getMediaList();
+			
+			if(isParameterStreaming(parameterMap)){
+				mediaPlayer.stop();
+				stream(mediaList.items().get(listIdPlay).mrl());
+			}else{
+				mediaPlayer.playPrevious();
+			}
 			Media media = createMedia(mediaList.items().get(listIdPlay));
 			serveurState = new ServerState(media, listIdPlay,
 					headlessMediaPlayer.getVolume(),
@@ -519,14 +530,22 @@ public class ServletManETS extends HttpServlet {
 			if (mediaToPlay != -1) {
 				if (mediaToPlay < mediaList.size()) {
 					listIdPlay = mediaToPlay;
-					mediaPlayer.playItem(listIdPlay);
+					if(isParameterStreaming(parameterMap)){
+						stream(mediaList.items().get(listIdPlay).mrl());
+					}else{
+						mediaPlayer.playItem(listIdPlay);
+					}
 				} else {
 					response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 					response.sendError(HttpServletResponse.SC_NOT_FOUND);
 				}
 			} else {
 				listIdPlay = 0;
-				mediaPlayer.playItem(listIdPlay);
+				if(isParameterStreaming(parameterMap)){
+					stream(mediaList.items().get(listIdPlay).mrl());
+				}else{
+					mediaPlayer.playItem(listIdPlay);
+				}
 			}
 			final Map<Integer, Media> list = new TreeMap<Integer, Media>();
 			int i = 0;
