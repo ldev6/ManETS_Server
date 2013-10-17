@@ -11,11 +11,15 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Media {
 
-	String titre;
-	String artist;
-	Long duree;
-	String album;
-	String path;
+	String titre = "";
+	String artist = "";
+	Long duree = 0L;
+	String album = "";
+	String path = "";
+
+	public Media() {
+		// TODO Auto-generated constructor stub
+	}
 
 	public Media(Tag tag, String path, int length) {
 		titre = tag.getFirst(FieldKey.TITLE);

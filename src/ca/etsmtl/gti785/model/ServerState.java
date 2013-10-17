@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ServerState {
 
-	Media currentMedia = null;
+	Media currentMedia = new Media();
 	int currentID = -1;
 	boolean pause = false;
 	float currentPosition = -1;
