@@ -564,9 +564,9 @@ public class ServletManETS extends HttpServlet {
 			mediaPlayer.pause();
 			response.setStatus(HttpServletResponse.SC_OK);
 			if (mediaPlayer.isPlaying()) {
-				serveurState.setPause(false);
-			} else {
 				serveurState.setPause(true);
+			} else {
+				serveurState.setPause(false);
 			}
 			serveurState.setCurrentPosition(headlessMediaPlayer.getPosition());
 			response.getWriter().write(
