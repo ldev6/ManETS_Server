@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import javax.management.ObjectInstance;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -196,10 +197,20 @@ public class ServletManETS extends HttpServlet {
 
 			switch (resourceValues.c) {
 			case ADD:
-				manageAddRequest(response, parameterMap);
+				try{
+					manageAddRequest(response, parameterMap);
+				} catch (Exception e) {
+					e.printStackTrace();
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				}
 				break;
 			case CLEAR:
-				manageClearRequest(response, parameterMap);
+				try {
+					manageClearRequest(response, parameterMap);
+				} catch (Exception e) {
+					e.printStackTrace();
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				}
 				break;
 			case LIST:
 				try {
@@ -226,7 +237,12 @@ public class ServletManETS extends HttpServlet {
 				}
 				break;
 			case ORDER:
-				manageOrderRequest(response, parameterMap);
+				try{
+					manageOrderRequest(response, parameterMap);
+				}catch(Exception e){
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+					e.printStackTrace();
+				}
 				break;
 			case PAUSE:
 				managePauseRequest(response, parameterMap);
@@ -256,7 +272,12 @@ public class ServletManETS extends HttpServlet {
 				}
 				break;
 			case REMOVE:
-				manageRemoveRequest(response, parameterMap);
+				try{
+					manageRemoveRequest(response, parameterMap);
+				}catch(Exception e){
+					e.printStackTrace();
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				}
 				break;
 			case SEEK:
 				manageSeekRequest(response, parameterMap);
@@ -299,6 +320,8 @@ public class ServletManETS extends HttpServlet {
 			serveurState = new ServerState(media, listIdPlay,
 					headlessMediaPlayer.getVolume(),
 					headlessMediaPlayer.getPosition());
+			
+			serveurState.setPlaylist(getPlayListDef(mediaList));
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(serveurState));
@@ -341,6 +364,7 @@ public class ServletManETS extends HttpServlet {
 			mediaPlayer.stop();
 			response.setStatus(HttpServletResponse.SC_OK);
 			serveurState.setCurrentMedia(null);
+			serveurState.setCurrentPosition(0);
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(serveurState));
 		} else {
@@ -392,6 +416,8 @@ public class ServletManETS extends HttpServlet {
 				if(positionSeek<1){
 					headlessMediaPlayer.setPosition(positionSeek);
 					response.setStatus(200);
+					serveurState.setCurrentPosition(positionSeek);
+					response.getWriter().write(new ObjectMapper().writeValueAsString(serveurState));
 				}else{
 					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 					response.sendError(HttpServletResponse.SC_BAD_REQUEST);
@@ -408,7 +434,7 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void manageRemoveRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) throws IOException {
+			Map<String, String[]> parameterMap) throws IOException, CannotReadException, TagException, ReadOnlyFileException, InvalidAudioFrameException {
 	
 		if(mediaPlayer.getMediaList()!=null){
 			if(parameterMap.containsKey("id")){
@@ -416,7 +442,8 @@ public class ServletManETS extends HttpServlet {
 				if( id>=0 && id<mediaPlayer.getMediaList().size()){
 					mediaPlayer.getMediaList().removeMedia(id);
 					response.setStatus(HttpServletResponse.SC_OK);
-					//TODO return playListDenition
+					
+					response.getWriter().write(new ObjectMapper().writeValueAsString(getPlayListDef(mediaPlayer.getMediaList())));
 				}			
 			}else{
 				response.sendError(HttpServletResponse.SC_BAD_REQUEST);
@@ -441,6 +468,7 @@ public class ServletManETS extends HttpServlet {
 			serveurState = new ServerState(media, listIdPlay,
 					headlessMediaPlayer.getVolume(),
 					headlessMediaPlayer.getPosition());
+			serveurState.setPlaylist(getPlayListDef(mediaList));
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(serveurState));
@@ -482,13 +510,13 @@ public class ServletManETS extends HttpServlet {
 			}
 
 			response.setStatus(HttpServletResponse.SC_OK);
-			response.getWriter().write(
-					new ObjectMapper().writeValueAsString(list));
-			
+						
 			Media media = createMedia(mediaList.items().get(listIdPlay));
 			serveurState = new ServerState(media, listIdPlay,
 					headlessMediaPlayer.getVolume(),
 					headlessMediaPlayer.getPosition());
+			serveurState.setPlaylist(list);
+			
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(serveurState));
 			
@@ -537,6 +565,7 @@ public class ServletManETS extends HttpServlet {
 			} else {
 				serveurState.setPause(true);
 			}
+			serveurState.setCurrentPosition(headlessMediaPlayer.getPosition());
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(serveurState));
 		} else {
@@ -548,15 +577,63 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void manageOrderRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
-		mediaPlayer.getMediaList().setStandardMediaOptions("--random");
+			Map<String, String[]> parameterMap) throws JsonProcessingException, IOException, CannotReadException, TagException, ReadOnlyFileException, InvalidAudioFrameException {
+		
+		if (parameterMap.containsKey("id")) {
+			if(parameterMap.containsKey("move")){
+				int id  = Integer.parseInt(parameterMap.get("id")[0]);
+				String move = parameterMap.get("move")[0];
+				MediaList mediaList = mediaPlayer.getMediaList();
+				List<MediaListItem> listMedia = new ArrayList<MediaListItem>() ;
+				MediaListItem tempo;
+				for (MediaListItem m : mediaList.items()) {
+					listMedia.add(m);
+				}
+				if(move.equals("up")|| move.equals("UP")){
+					System.out.println("Order");
+					if(id-1>0){
+						tempo = listMedia.get(id-1) ;
+						listMedia.set(id-1, listMedia.get(id));
+						listMedia.set(id, tempo);
+					}else{
+						response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+						response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+					}
+				}else if(move.equals("down")|| move.equals("DOWN")){
+					if(id+1>listMedia.size()-1){
+						tempo = listMedia.get(id+1) ;
+						listMedia.set(id+1, listMedia.get(id));
+						listMedia.set(id, tempo);
+					}else{
+						response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+						response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+					}
+				}else{
+					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+					response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+					return;
+				}
+
+				mediaList.clear();
+				for(MediaListItem mediaTri: listMedia){
+					mediaList.addMedia(mediaTri.mrl());
+				}
+				mediaPlayer.setMediaList(mediaList);
+				response.setStatus(200);
+				response.getWriter().write(new ObjectMapper().writeValueAsString(getPlayListDef(mediaPlayer.getMediaList())));
+			}
+		}else{
+			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+		}
 	}
 
 	private void manageClearRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) {
+			Map<String, String[]> parameterMap) throws JsonProcessingException, IOException, CannotReadException, TagException, ReadOnlyFileException, InvalidAudioFrameException {
 
 		mediaPlayer.getMediaList().clear();
 		response.setStatus(200);
+		response.getWriter().write(new ObjectMapper().writeValueAsString(getPlayListDef(mediaPlayer.getMediaList())));
 
 	}
 
@@ -590,12 +667,18 @@ public class ServletManETS extends HttpServlet {
 			mediaPlayer.play();
 
 			Media media = createMedia(list.items().get(0));
-					
+			
+			final Map<Integer, Media> listToServer = new TreeMap<Integer, Media>();
+			int i = 0;
+			for (MediaListItem m : mediaPlayer.getMediaList().items()) {
+				listToServer.put(i++, createMedia(m));
+			}
+			
 			serveurState = new ServerState(media, listIdPlay,
 					headlessMediaPlayer.getVolume(),
 					headlessMediaPlayer.getPosition());
-			
 
+			serveurState.setPlaylist(listToServer);
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(serveurState));
@@ -616,6 +699,12 @@ public class ServletManETS extends HttpServlet {
 		realPath = realPath.replaceAll("%27", "'");
 		realPath = realPath.replaceAll("%28", "(");
 		realPath = realPath.replaceAll("%29", ")");
+		realPath = realPath.replaceAll("%E8", "è");
+		realPath = realPath.replaceAll("%EF", "ï");
+		realPath = realPath.replaceAll("%26", "&");
+		realPath = realPath.replaceAll("%5B", "[");
+		realPath = realPath.replaceAll("%5D", "]");
+		
 		AudioFile f = AudioFileIO.read(new File(realPath));
 		Tag tag = f.getTag();
 
@@ -625,16 +714,16 @@ public class ServletManETS extends HttpServlet {
 	}
 
 	private void manageAddRequest(HttpServletResponse response,
-			Map<String, String[]> parameterMap) throws IOException {
+			Map<String, String[]> parameterMap) throws IOException, CannotReadException, TagException, ReadOnlyFileException, InvalidAudioFrameException {
 
 		if (parameterMap.containsKey("path")) {
-
-			mediaPlayer.getMediaList().addMedia(
-					musicHome + parameterMap.get("path")[0]);
+		
+			String path = musicHome + parameterMap.get("path")[0];
+			mediaPlayer.getMediaList().addMedia(path);
 
 			response.setStatus(200);
 			response.getWriter().write(
-					new ObjectMapper().writeValueAsString(playlists));
+					new ObjectMapper().writeValueAsString(getPlayListDef(mediaPlayer.getMediaList())));
 		} else {
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
@@ -698,6 +787,16 @@ public class ServletManETS extends HttpServlet {
 		ListReponse r = new ListReponse(listRepertoire, listMedia);
 		return r;
 	}
+	
+	private Map<Integer, Media> getPlayListDef(MediaList mediaList) throws CannotReadException, IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException{
+		final Map<Integer, Media> list = new TreeMap<Integer, Media>();
+		int i = 0;
+		for (MediaListItem m : mediaList.items()) {
+			list.put(i++, createMedia(m));
+		}
+		return list;
+	}
+	
 	
 	
 

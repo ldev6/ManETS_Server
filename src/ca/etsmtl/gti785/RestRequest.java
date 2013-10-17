@@ -101,7 +101,6 @@ class RestRequest {
 
 		matcher = seekPattern.matcher(pathInfo);
 		if (matcher.find()) {
-			// id = Integer.parseInt(matcher.group(1));
 			c = Controller.SEEK;
 			return;
 		}
@@ -118,7 +117,6 @@ class RestRequest {
 			return;
 		}
 
-	
 
 		matcher = previousPattern.matcher(pathInfo);
 		if (matcher.find()) {
@@ -134,7 +132,6 @@ class RestRequest {
 
 		matcher = removePattern.matcher(pathInfo);
 		if (matcher.find()) {
-			id = Integer.parseInt(matcher.group(1));
 			c = Controller.REMOVE;
 			return;
 		}
