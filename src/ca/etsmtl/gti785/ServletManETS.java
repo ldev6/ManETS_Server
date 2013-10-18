@@ -1,17 +1,12 @@
 package ca.etsmtl.gti785;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -123,11 +118,15 @@ public class ServletManETS extends HttpServlet {
 		System.out.println(System.getProperty("os.version"));
 		System.out.println("User Home folder : " + userHome);
 		System.out.println("============================");
-
-		List<String> ppp = getLocalHostAddresses();
-		ip = ppp.get(2) + ":8081";
-		hostAddress = "http://";
-		hostAddress += ppp.get(2) + ":8080/";
+		InetAddress IP = null;
+		try {
+			IP = InetAddress.getLocalHost();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
+		ip = IP.getHostAddress() + ":8081";
+		hostAddress = "http://" + IP.getHostAddress();
+		hostAddress += ":8080/";
 		System.out.println("Adress of my system is : " + hostAddress);
 		System.out.println("============================");
 	}
@@ -157,6 +156,10 @@ public class ServletManETS extends HttpServlet {
 
 	}
 
+	/**
+	 * checkMusicHomeExist
+	 * @return the file of home music huser
+	 */
 	private static String checkMusicHomeExist() {
 		return new File(userHome + "\\Music").exists() ? userHome + "\\Music"
 				: "false";
@@ -202,6 +205,7 @@ public class ServletManETS extends HttpServlet {
 					.getParameterMap();
 
 			final RestRequest resourceValues = new RestRequest(servInfo);
+	        System.out.println(">REST : " + resourceValues.c.toString());
 			switch (resourceValues.c) {
 			case ADD:
 				try {
@@ -315,6 +319,19 @@ public class ServletManETS extends HttpServlet {
 		}
 	}
 
+	/**
+	 * manageNextRequest
+	 *  function that plau the next item in the list 
+	 *  and return the status of the Server and
+	 *  send ServerState response in Json format  
+	 * @param response  HttpServletResponse
+	 * @param parameterMap  Parameter of the http get request
+	 * @throws IOException
+	 * @throws CannotReadException
+	 * @throws TagException
+	 * @throws ReadOnlyFileException
+	 * @throws InvalidAudioFrameException
+	 */
 	private void manageNextRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws IOException,
 			CannotReadException, TagException, ReadOnlyFileException,
@@ -343,7 +360,15 @@ public class ServletManETS extends HttpServlet {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND);
 		}
 	}
-
+   /**
+    * manageVolumeRequest
+    * function that manage the Volume of the server
+    * Send the serverState in Json
+    * Set the status of the server
+    * @param response Http Response 
+    * @param parameterMap  Parameter of the http get request
+    * @throws IOException
+    */
 	private void manageVolumeRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws IOException {
 
@@ -371,6 +396,15 @@ public class ServletManETS extends HttpServlet {
 
 	}
 
+	/**
+	 * manageStopRequest
+	 * Stop the player
+	 * Send the ServeurState in Json
+	 * set the status of the server
+	 * @param response
+	 * @param parameterMap
+	 * @throws IOException
+	 */
 	private void manageStopRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws IOException {
 		if (headlessMediaPlayer.canPause()) {
@@ -389,6 +423,18 @@ public class ServletManETS extends HttpServlet {
 		}
 	}
 
+	/**
+	 * manageStateRequest
+	 * Send the serverState of the Server
+	 * @param response
+	 * @param parameterMap
+	 * @throws JsonProcessingException
+	 * @throws IOException
+	 * @throws CannotReadException
+	 * @throws TagException
+	 * @throws ReadOnlyFileException
+	 * @throws InvalidAudioFrameException
+	 */
 	private void manageStateRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws JsonProcessingException,
 			IOException, CannotReadException, TagException,
@@ -425,7 +471,16 @@ public class ServletManETS extends HttpServlet {
 				new ObjectMapper().writeValueAsString(serveurState));
 	}
 
-	// Time position in second
+	/**
+	 * manageSeekRequest
+	 * function that set the seek ( the new good position of the player)
+	 * Send the ServerState in Json
+	 * Set the satus of the server
+	 * @param response
+	 * @param parameterMap
+	 * @throws JsonProcessingException
+	 * @throws IOException
+	 */
 	private void manageSeekRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws JsonProcessingException,
 			IOException {
@@ -458,6 +513,19 @@ public class ServletManETS extends HttpServlet {
 		}
 	}
 
+	/**
+	 * manageRemoveRequest
+	 * function that delete a element in the playList
+	 * Send the mediaPLayList in Json 
+	 * Set the status of the server
+	 * @param response
+	 * @param parameterMap
+	 * @throws IOException
+	 * @throws CannotReadException
+	 * @throws TagException
+	 * @throws ReadOnlyFileException
+	 * @throws InvalidAudioFrameException
+	 */
 	private void manageRemoveRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws IOException,
 			CannotReadException, TagException, ReadOnlyFileException,
@@ -470,18 +538,33 @@ public class ServletManETS extends HttpServlet {
 					mediaPlayer.getMediaList().removeMedia(id);
 					response.setStatus(HttpServletResponse.SC_OK);
 
+					response.getWriter()
+							.write(new ObjectMapper()
+									.writeValueAsString(getPlayListDef(mediaPlayer
+											.getMediaList())));
 				}
+			} else {
 			}
-			response.getWriter().write(
-					new ObjectMapper()
-							.writeValueAsString(getPlayListDef(mediaPlayer
-									.getMediaList())));
 		} else {
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 
 	}
 
+	/**
+	 * managePreviousRequest
+	 * function that play the previous music
+	 * Send the Server state in Json 
+	 * Set the status of the server
+	 * @param response
+	 * @param parameterMap
+	 * @throws JsonProcessingException
+	 * @throws IOException
+	 * @throws CannotReadException
+	 * @throws TagException
+	 * @throws ReadOnlyFileException
+	 * @throws InvalidAudioFrameException
+	 */
 	private void managePreviousRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws JsonProcessingException,
 			IOException, CannotReadException, TagException,
@@ -514,6 +597,19 @@ public class ServletManETS extends HttpServlet {
 
 	}
 
+	/**
+	 * managePlayPlayListRequest
+	 * function that change the order in of the playList
+	 * Send the serverState in Json
+	 * Set the status of the server
+	 * @param response
+	 * @param parameterMap  int id
+	 * @throws IOException
+	 * @throws CannotReadException
+	 * @throws TagException
+	 * @throws ReadOnlyFileException
+	 * @throws InvalidAudioFrameException
+	 */
 	private void managePlayPlayListRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws IOException,
 			CannotReadException, TagException, ReadOnlyFileException,
@@ -571,6 +667,18 @@ public class ServletManETS extends HttpServlet {
 
 	}
 
+	/**
+	 * managePlaylistRequest
+	 * function that send the playListDefinition
+	 * @param response
+	 * @param parameterMap
+	 * @throws JsonProcessingException
+	 * @throws IOException
+	 * @throws CannotReadException
+	 * @throws TagException
+	 * @throws ReadOnlyFileException
+	 * @throws InvalidAudioFrameException
+	 */
 	private void managePlaylistRequest(HttpServletResponse response,
 			Map<String, String[]> parameterMap) throws JsonProcessingException,
 			IOException, CannotReadException, TagException,
@@ -832,8 +940,6 @@ public class ServletManETS extends HttpServlet {
 		realPath = realPath.replaceAll("%26", "&");
 		realPath = realPath.replaceAll("%5B", "[");
 		realPath = realPath.replaceAll("%5D", "]");
-		realPath = realPath.replaceAll("%3F", "&");
-		realPath = realPath.replaceAll("%3D", "=");
 
 		return realPath;
 	}
@@ -923,11 +1029,11 @@ public class ServletManETS extends HttpServlet {
 	 * @param path
 	 */
 	private void stream(String path) {
-		System.out.println("path =" + path + " ip=" + ip);
+		System.out.println("FUCKYOUSTREAM: path =" + path + " ip=" + ip);
 		String param = ":sout=#transcode{acodec=mpga}:duplicate{dst=std{access=http,mux=ts,dst="
 				+ ip + "}}";
 		boolean streamBool = headlessMediaPlayer.playMedia(path, param);
-		System.out.println("bool =" + streamBool);
+		System.out.println("FUCKYOUSTREAM2 bool =" + streamBool);
 
 	}
 
@@ -960,30 +1066,5 @@ public class ServletManETS extends HttpServlet {
 		mediaPlayerFactory.release();
 		headlessMediaPlayer.release();
 		mediaPlayer.release();
-	}
-
-	private static List<String> getLocalHostAddresses() {
-
-		List<String> addresses = new ArrayList<String>();
-
-		try {
-			Enumeration<NetworkInterface> e = NetworkInterface
-					.getNetworkInterfaces();
-
-			while (e.hasMoreElements()) {
-				NetworkInterface ni = e.nextElement();
-				Enumeration<InetAddress> e2 = ni.getInetAddresses();
-				while (e2.hasMoreElements())
-					addresses.add(e2.nextElement().getHostAddress());
-			}
-			URL u = new URL("http://whatismyip.org");
-			BufferedReader in = new BufferedReader(new InputStreamReader(
-					u.openStream()));
-			addresses.add(in.readLine());
-			in.close();
-		} catch (Exception ignore) {
-		}
-
-		return addresses;
 	}
 }
