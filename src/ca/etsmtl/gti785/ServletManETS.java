@@ -21,6 +21,7 @@ import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
 import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
+import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.TagException;
 
@@ -137,6 +138,7 @@ public class ServletManETS extends HttpServlet {
 	private MediaListPlayer mediaPlayer;
 	private HeadlessMediaPlayer headlessMediaPlayer;
 	private MediaPlayerFactory mediaPlayerFactory;
+	private boolean isPaused;
 
 	/**
 	 * @see HttpServlet#HttpServlet()
@@ -322,16 +324,16 @@ public class ServletManETS extends HttpServlet {
 			listIdPlay++;
 			MediaList mediaList = mediaPlayer.getMediaList();
 			Media media = null;
-			if(isParameterStreaming(parameterMap)){
+			if (isParameterStreaming(parameterMap)) {
 				stream(mediaList.items().get(listIdPlay).mrl());
-			}else{
-				mediaPlayer.playNext();				
-			}	
+			} else {
+				mediaPlayer.playNext();
+			}
 			media = createMedia(mediaList.items().get(listIdPlay));
 			serveurState = new ServerState(media, listIdPlay,
 					headlessMediaPlayer.getVolume(),
 					headlessMediaPlayer.getPosition());
-			
+
 			serveurState.setPlaylist(getPlayListDef(mediaList));
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.getWriter().write(
@@ -374,11 +376,11 @@ public class ServletManETS extends HttpServlet {
 		if (headlessMediaPlayer.canPause()) {
 			mediaPlayer.stop();
 			response.setStatus(HttpServletResponse.SC_OK);
-			
+
 			serveurState.setCurrentMedia(null);
 			serveurState.setCurrentPosition(0);
 			serveurState.setPause(headlessMediaPlayer.isPlaying());
-			
+
 			response.getWriter().write(
 					new ObjectMapper().writeValueAsString(serveurState));
 		} else {
@@ -394,15 +396,15 @@ public class ServletManETS extends HttpServlet {
 
 		serveurState.setCurrentPosition(headlessMediaPlayer.getPosition()
 				* headlessMediaPlayer.getLength());
-		
+
 		serveurState.setVolume(headlessMediaPlayer.getVolume());
-		
+
 		serveurState.setPause(mediaPlayer.isPlaying());
-		
+
 		final MediaList mediaList = mediaPlayer.getMediaList();
-		
+
 		if (mediaList != null && mediaList.items().size() > 0) {
-		
+
 			serveurState.setCurrentID(listIdPlay);
 			final Map<Integer, Media> list = new TreeMap<Integer, Media>();
 
@@ -410,13 +412,13 @@ public class ServletManETS extends HttpServlet {
 			for (MediaListItem m : mediaList.items()) {
 				list.put(i++, createMedia(m));
 			}
-			
+
 			serveurState.setPlaylist(list);
-			
+
 			Media media = createMedia(mediaList.items().get(listIdPlay));
-			
+
 			serveurState.setCurrentMedia(media);
-		} 
+		}
 
 		response.setStatus(HttpServletResponse.SC_OK);
 		response.getWriter().write(
@@ -492,11 +494,11 @@ public class ServletManETS extends HttpServlet {
 			listIdPlay--;
 
 			MediaList mediaList = mediaPlayer.getMediaList();
-			
-			if(isParameterStreaming(parameterMap)){
+
+			if (isParameterStreaming(parameterMap)) {
 				mediaPlayer.stop();
 				stream(mediaList.items().get(listIdPlay).mrl());
-			}else{
+			} else {
 				mediaPlayer.playPrevious();
 			}
 			Media media = createMedia(mediaList.items().get(listIdPlay));
@@ -530,9 +532,9 @@ public class ServletManETS extends HttpServlet {
 			if (mediaToPlay != -1) {
 				if (mediaToPlay < mediaList.size()) {
 					listIdPlay = mediaToPlay;
-					if(isParameterStreaming(parameterMap)){
+					if (isParameterStreaming(parameterMap)) {
 						stream(mediaList.items().get(listIdPlay).mrl());
-					}else{
+					} else {
 						mediaPlayer.playItem(listIdPlay);
 					}
 				} else {
@@ -541,9 +543,9 @@ public class ServletManETS extends HttpServlet {
 				}
 			} else {
 				listIdPlay = 0;
-				if(isParameterStreaming(parameterMap)){
+				if (isParameterStreaming(parameterMap)) {
 					stream(mediaList.items().get(listIdPlay).mrl());
-				}else{
+				} else {
 					mediaPlayer.playItem(listIdPlay);
 				}
 			}
@@ -600,6 +602,7 @@ public class ServletManETS extends HttpServlet {
 			IOException {
 		if (headlessMediaPlayer.canPause()) {
 			mediaPlayer.pause();
+			isPaused = true;
 			response.setStatus(HttpServletResponse.SC_OK);
 			if (mediaPlayer.isPlaying()) {
 				serveurState.setPause(true);
@@ -719,7 +722,10 @@ public class ServletManETS extends HttpServlet {
 				list.addMedia(file.getAbsolutePath());
 			}
 
-			mediaPlayer.stop();
+			if (!isPaused) {
+
+				mediaPlayer.stop();
+			}
 			mediaPlayer.setMediaList(list);
 			if (isParameterStreaming(parameterMap)) {
 				System.out.println("before streaming");
@@ -765,9 +771,12 @@ public class ServletManETS extends HttpServlet {
 
 		if (realPath != null) {
 
-			AudioFile f = AudioFileIO.read(new File(realPath));
+			File file = new File(realPath);
+			AudioFile f = AudioFileIO.read(file);
 			Tag tag = f.getTag();
-
+			if (tag.getFirst(FieldKey.TITLE).length() < 2) {
+				tag.setField(FieldKey.TITLE, f.getBaseFilename(file));
+			}
 			Media media = new Media(tag, realPath, f.getAudioHeader()
 					.getTrackLength());
 
@@ -860,7 +869,11 @@ public class ServletManETS extends HttpServlet {
 			InvalidAudioFrameException {
 
 		AudioFile f = AudioFileIO.read(file);
-		Tag tag = f.getTag();
+		Tag tag = f.getTagAndConvertOrCreateAndSetDefault();
+
+		if (tag.getFirst(FieldKey.TITLE).length() < 2) {
+			tag.setField(FieldKey.TITLE, f.getBaseFilename(file));
+		}
 
 		Media media = new Media(tag, "\\"
 				+ new File(musicHome).toPath().relativize(file.toPath())
@@ -872,6 +885,7 @@ public class ServletManETS extends HttpServlet {
 	private ListReponse createListReponse(File[] array, String path)
 			throws CannotReadException, IOException, TagException,
 			ReadOnlyFileException, InvalidAudioFrameException {
+
 		List<RepertoireDefinition> listRepertoire = new ArrayList<RepertoireDefinition>();
 		List<Media> listMedia = new ArrayList<Media>();
 		for (int i = 0; i < array.length; i++) {
